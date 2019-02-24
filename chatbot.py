@@ -195,9 +195,20 @@ class Chatbot:
       tokens = re.findall(r"[\w']+|[.,!?;]", text)
       print(tokens)
       words = []
-      #words = word_tokenize(text)
-      for w in tokens:
-        words = words + word_tokenize(w)
+      for t in tokens:
+        words = words + word_tokenize(t)
+      print(words)
+
+      for i in range(len(words)):
+        w = words[i]
+        if w in neg_words and i != len(words)-1:
+          j = i+1
+          wordToNegate = words[j]
+          while wordToNegate not in punctuation and j < len(words):
+            print(wordToNegate)
+            words[j] = "NOT_" + wordToNegate
+            j = j+1
+            if j <= (len(words)-1): wordToNegate = words[j]
       print(words)
       #print(self.sentiment)
       return 0
