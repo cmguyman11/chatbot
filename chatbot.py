@@ -6,6 +6,7 @@ import movielens
 import sys
 import os
 import re
+import math
 
 import numpy as np
 
@@ -301,13 +302,13 @@ class Chatbot:
       # TODO: Compute cosine similarity between the two vectors.
       #############################################################################
       lenx, leny, lenxy = 0, 0, 0
-      for i in range(len(v1)):
-          u = v1[i]
-          v = v2[i]
-          lenu += u*u
-          lenv += v*v
-          lenuv += u*v
-      cosine_sim = lenuv / float(math.sqrt(lenv*lenu))
+      for i in range(len(u)):
+          x = v[i]
+          y = u[i]
+          lenx += x*x
+          leny += y*y
+          lenxy += x*y
+      cosine_sim = lenxy / float(math.sqrt(lenx*leny))
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
