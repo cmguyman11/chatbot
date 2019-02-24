@@ -9,6 +9,7 @@ import re
 import math
 
 import numpy as np
+from nltk.tokenize import word_tokenize
 
 
 class Chatbot:
@@ -189,7 +190,16 @@ class Chatbot:
       :param text: a user-supplied line of text
       :returns: a numerical value for the sentiment of the text
       """
-      print(self.sentiment)
+      neg_words = ["n't", "not", "no", "never"]
+      punctuation = [".", ",", "!", "?", ";"]
+      tokens = re.findall(r"[\w']+|[.,!?;]", text)
+      print(tokens)
+      words = []
+      #words = word_tokenize(text)
+      for w in tokens:
+        words = words + word_tokenize(w)
+      print(words)
+      #print(self.sentiment)
       return 0
 
     def extract_sentiment_for_movies(self, text):
