@@ -202,6 +202,7 @@ class Chatbot:
       :param text: a user-supplied line of text
       :returns: a numerical value for the sentiment of the text
       """
+      print(self.sentiment)
       return 0
 
     def extract_sentiment_for_movies(self, text):
