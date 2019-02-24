@@ -193,25 +193,53 @@ class Chatbot:
       neg_words = ["n't", "not", "no", "never"]
       punctuation = [".", ",", "!", "?", ";"]
       tokens = re.findall(r"[\w']+|[.,!?;]", text)
-      print(tokens)
       words = []
       for t in tokens:
         words = words + word_tokenize(t)
       print(words)
 
-      for i in range(len(words)):
+      pos_count = 0
+      neg_count = 0
+      i = 0
+      while i < len(words):
         w = words[i]
         if w in neg_words and i != len(words)-1:
           j = i+1
           wordToNegate = words[j]
           while wordToNegate not in punctuation and j < len(words):
-            print(wordToNegate)
-            words[j] = "NOT_" + wordToNegate
+           # print(wordToNegate)
+          #  words[j] = "NOT_" + wordToNegate
+            if wordToNegate in self.sentiment:
+              print(wordToNegate)
+              print(self.sentiment[wordToNegate])
+              if self.sentiment[wordToNegate] == "pos":
+                neg_count += 1
+              else:
+                pos_count += 1
             j = j+1
             if j <= (len(words)-1): wordToNegate = words[j]
-      print(words)
+          i = j
+
+        else:
+          if w in self.sentiment:
+            print(w)
+            print(self.sentiment[w])
+            if self.sentiment[w] == "pos":
+              pos_count += 1
+            else:
+              neg_count += 1
+          i = i+1
+        
+      print(pos_count)
+      print(neg_count)
+     # print(words)
       #print(self.sentiment)
-      return 0
+      if pos_count > neg_count:
+        return 1
+      elif neg_count > pos_count:
+        return -1
+      else:
+        return 0
 
     def extract_sentiment_for_movies(self, text):
       """Creative Feature: Extracts the sentiments from a line of text
