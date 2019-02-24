@@ -15,7 +15,7 @@ class Chatbot:
 
     def __init__(self, creative=False):
       # The chatbot's default name is `moviebot`. Give your chatbot a new name.
-      self.name = 'lets_fucking_do_this'
+      self.name = 'Lit!'
 
       self.creative = creative
 
@@ -96,13 +96,17 @@ class Chatbot:
       #############################################################################
       if self.creative:
         response = "I processed {} in creative mode!!".format(line)
+
       else:
+
         titles = self.extract_titles(line)
         if len(titles) > 1:
           return "Please tell me about only one movie at a time. Go ahead."
+
         movies = []
         for i in titles:
           movies.append(self.find_movies_by_title(i))
+
         sentiment = self.extract_sentiment(line)
         response = "I processed {} in starter mode!!".format(line)
 
@@ -296,11 +300,18 @@ class Chatbot:
       #############################################################################
       # TODO: Compute cosine similarity between the two vectors.
       #############################################################################
-      similarity = 0
+      lenx, leny, lenxy = 0, 0, 0
+      for i in range(len(v1)):
+          u = v1[i]
+          v = v2[i]
+          lenx += u*u
+          leny += v*v
+          lenxy += u*v
+      cosine_sim = lenuv / float(math.sqrt(lenv*lenu))
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
-      return similarity
+      return cosine_sim
 
 
     def recommend(self, user_ratings, ratings_matrix, k=10, creative=False):
