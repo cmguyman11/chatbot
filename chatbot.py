@@ -25,7 +25,7 @@ class Chatbot:
       # The values stored in each row i and column j is the rating for
       # movie i by user j
       self.titles, ratings = movielens.ratings()
-      #self.sentiment = movielens.sentiment()
+
       self.sentiment = {}
       self.porter_stemmer = PorterStemmer()
       sentimentCopy = movielens.sentiment()
@@ -198,50 +198,46 @@ class Chatbot:
       :param text: a user-supplied line of text
       :returns: a numerical value for the sentiment of the text
       """
+
       neg_words = ["n't", "not", "no", "never"]
       punctuation = [".", ",", "!", "?", ";"]
+
+      title = self.extract_titles(text) #remove title so its not included in sentiment
+      if len(title) > 0: text = text.replace(title[0], "")
+
       tokens = re.findall(r"[\w']+|[.,!?;]", text)
       words = []
       for t in tokens:
         words = words + word_tokenize(t)
-      print(words)
 
       pos_count = 0
       neg_count = 0
       i = 0
       while i < len(words):
         w = self.porter_stemmer.stem(words[i])
-        if w in neg_words and i != len(words)-1:
+        if w in neg_words and i != len(words)-1: #Take opposite meaning of all words after
+          
           j = i+1
           wordToNegate = self.porter_stemmer.stem(words[j])
           while wordToNegate not in punctuation and j < len(words):
-           # print(wordToNegate)
-          #  words[j] = "NOT_" + wordToNegate
             if wordToNegate in self.sentiment:
-              print(wordToNegate)
-              print(self.sentiment[wordToNegate])
               if self.sentiment[wordToNegate] == "pos":
                 neg_count += 1
               else:
                 pos_count += 1
             j = j+1
             if j <= (len(words)-1): wordToNegate = self.porter_stemmer.stem(words[j])
-          i = j
+          i = j #Jump ahead
 
-        else:
+        else: #find straight sentiment of words
           if w in self.sentiment:
-            print(w)
-            print(self.sentiment[w])
             if self.sentiment[w] == "pos":
               pos_count += 1
             else:
               neg_count += 1
           i = i+1
         
-      print(pos_count)
-      print(neg_count)
-      print(words)
-      #print(self.sentiment)
+
       if pos_count > neg_count:
         return 1
       elif neg_count > pos_count:
