@@ -10,7 +10,7 @@ import math
 
 import numpy as np
 from nltk.tokenize import word_tokenize
-
+from PorterStemmer import PorterStemmer
 
 class Chatbot:
     """Simple class to implement the chatbot for PA 6."""
@@ -25,7 +25,15 @@ class Chatbot:
       # The values stored in each row i and column j is the rating for
       # movie i by user j
       self.titles, ratings = movielens.ratings()
-      self.sentiment = movielens.sentiment()
+      #self.sentiment = movielens.sentiment()
+      self.sentiment = {}
+      self.porter_stemmer = PorterStemmer()
+      sentimentCopy = movielens.sentiment()
+
+      for k, v in sentimentCopy.items():
+        key = self.porter_stemmer.stem(k)
+        self.sentiment[key] = v
+
 
       #############################################################################
       # TODO: Binarize the movie ratings matrix.                                  #
@@ -202,10 +210,10 @@ class Chatbot:
       neg_count = 0
       i = 0
       while i < len(words):
-        w = words[i]
+        w = self.porter_stemmer.stem(words[i])
         if w in neg_words and i != len(words)-1:
           j = i+1
-          wordToNegate = words[j]
+          wordToNegate = self.porter_stemmer.stem(words[j])
           while wordToNegate not in punctuation and j < len(words):
            # print(wordToNegate)
           #  words[j] = "NOT_" + wordToNegate
@@ -217,7 +225,7 @@ class Chatbot:
               else:
                 pos_count += 1
             j = j+1
-            if j <= (len(words)-1): wordToNegate = words[j]
+            if j <= (len(words)-1): wordToNegate = self.porter_stemmer.stem(words[j])
           i = j
 
         else:
@@ -232,7 +240,7 @@ class Chatbot:
         
       print(pos_count)
       print(neg_count)
-     # print(words)
+      print(words)
       #print(self.sentiment)
       if pos_count > neg_count:
         return 1
