@@ -9,7 +9,8 @@ import re
 import math
 
 import numpy as np
-
+from nltk.tokenize import word_tokenize
+from PorterStemmer import PorterStemmer
 
 class Chatbot:
     """Simple class to implement the chatbot for PA 6."""
@@ -24,7 +25,15 @@ class Chatbot:
       # The values stored in each row i and column j is the rating for
       # movie i by user j
       self.titles, ratings = movielens.ratings()
-      self.sentiment = movielens.sentiment()
+
+      self.sentiment = {}
+      self.porter_stemmer = PorterStemmer()
+      sentimentCopy = movielens.sentiment()
+
+      for k, v in sentimentCopy.items():
+        key = self.porter_stemmer.stem(k)
+        self.sentiment[key] = v
+
 
       self.user_ratings = []
       #############################################################################
@@ -111,7 +120,8 @@ class Chatbot:
         for i in titles:
           #FOR CREATIVE: CHANGE THIS TO DISAMBIGUATE BETWEEN TITLES BY USING BELOW CALL to start:
           #movies = self.find_movies_by_title(i)
-          id_list = self.find_movies_by_title(i)
+          #id_list = self.find_movies_by_title(i)
+          id_list = self.find_movies_closest_to_title(i)
           if id_list == []:return "I'm sorry, I don't recognize that movie. Please enter in a different title."
             #for simple mode: no disambiguate, just choose first id!
           movies = (self.find_movies_by_title(i)[0], sentiment)        
@@ -155,6 +165,17 @@ class Chatbot:
       titles = re.findall('"([^"]*)"', text)
       return titles
 
+    def process_title(self, title): 
+      title = title.lower()
+      word_list = title.split()
+      if (word_list[0] == 'and' or word_list[0] == 'the' or word_list[0] == 'a'):
+        word_list[-1] = word_list[-1] + ','
+        word_list.append(word_list[0])
+        word_list.pop(0)
+
+      title = " ".join(word_list)
+      return title
+
     def find_movies_by_title(self, title):
       """ Given a movie title, return a list of indices of matching movies.
 
@@ -171,14 +192,7 @@ class Chatbot:
       :param title: a string containing a movie title
       :returns: a list of indices of matching movies
       """
-      title = title.lower()
-      word_list = title.split()
-      if (word_list[0] == 'and' or word_list[0] == 'the' or word_list[0] == 'a'):
-        word_list[-1] = word_list[-1] + ','
-        word_list.append(word_list[0])
-        word_list.pop(0)
-
-      title = " ".join(word_list)
+      title = self.process_title(title)
 
       id_list = []
       movie_list = movielens.titles()
@@ -205,8 +219,52 @@ class Chatbot:
       :param text: a user-supplied line of text
       :returns: a numerical value for the sentiment of the text
       """
-      print(self.sentiment)
-      return 0
+
+      neg_words = ["n't", "not", "no", "never"]
+      punctuation = [".", ",", "!", "?", ";"]
+
+      title = self.extract_titles(text) #remove title so its not included in sentiment
+      if len(title) > 0: text = text.replace(title[0], "")
+
+      tokens = re.findall(r"[\w']+|[.,!?;]", text)
+      words = []
+      for t in tokens:
+        words = words + word_tokenize(t)
+
+      pos_count = 0
+      neg_count = 0
+      i = 0
+      while i < len(words):
+        w = self.porter_stemmer.stem(words[i])
+        if w in neg_words and i != len(words)-1: #Take opposite meaning of all words after
+          
+          j = i+1
+          wordToNegate = self.porter_stemmer.stem(words[j])
+          while wordToNegate not in punctuation and j < len(words):
+            if wordToNegate in self.sentiment:
+              if self.sentiment[wordToNegate] == "pos":
+                neg_count += 1
+              else:
+                pos_count += 1
+            j = j+1
+            if j <= (len(words)-1): wordToNegate = self.porter_stemmer.stem(words[j])
+          i = j #Jump ahead
+
+        else: #find straight sentiment of words
+          if w in self.sentiment:
+            if self.sentiment[w] == "pos":
+              pos_count += 1
+            else:
+              neg_count += 1
+          i = i+1
+        
+
+      if pos_count > neg_count:
+        return 1
+      elif neg_count > pos_count:
+        return -1
+      else:
+        return 0
 
     def extract_sentiment_for_movies(self, text):
       """Creative Feature: Extracts the sentiments from a line of text
@@ -226,6 +284,51 @@ class Chatbot:
       """
       pass
 
+    # def edit_distance(self, movie1, movie2, len1, len2):
+    #   if len1 == 0:
+    #     return len2
+    #   if len2 == 0:
+    #     return len1
+
+    #   if movie1[len1-1] == movie2[len2-1]:
+    #     return self.edit_distance(movie1, movie2, len1-1, len2-1)
+
+    #   try1 = 1 + self.edit_distance(movie1, movie2, len1, len2-1)
+    #   try2 = 1 + self.edit_distance(movie1, movie2, len1-1, len2)
+    #   try3 = 1 + self.edit_distance(movie1, movie2, len1-1, len2-1)
+    #   # print(movie1)
+    #   # print(movie2)
+    #   # print(len1)
+    #   # print(len2)
+    #   return min(try1, try2, try3)
+
+    def edit_distance(self, movie1, movie2, max_distance):
+      rows = len(movie1) + 1
+      cols = len(movie2) + 1
+      grid = [[0 for col in range(cols)] for row in range(rows)]
+
+      for row in range(1, rows):
+        grid[row][0] = row
+      
+      for col in range(1, cols):
+        grid[0][col] = col
+      
+      for col in range(1, cols):
+        for row in range(1, rows):
+          cost = 1
+          if movie1[row-1] == movie2[col-1]:
+            cost = 0
+          deletion = 1 + grid[row-1][col]
+          insertion = 1 + grid[row][col-1]
+          sub = cost + grid[row-1][col-1]
+          grid[row][col] = min(deletion, insertion, sub)
+          # if grid[row][col] > max_distance:
+          #   return -1
+      #print(grid)
+      return grid[row][col]
+
+
+
     def find_movies_closest_to_title(self, title, max_distance=3):
       """Creative Feature: Given a potentially misspelled movie title,
       return a list of the movies in the dataset whose titles have the least edit distance
@@ -244,8 +347,23 @@ class Chatbot:
       :param max_distance: the maximum edit distance to search for
       :returns: a list of movie indices with titles closest to the given title and within edit distance max_distance
       """
+      title = self.process_title(title)
+      # print(title)
+      # movie = "hello"
+      # print(self.edit_distance(movie, title, max_distance))
+      id_list = []
+      movie_list = movielens.titles()
+      for i in range(len(movie_list)):
+        movie = self.process_title(movie_list[i][0]).lower()
+       # if abs(len(movie)-len(title)) <= max_distance:
+          #editDistance = self.edit_distance(movie, title, len(movie), len(title), max_distance)
+        editDistance = self.edit_distance(movie, title, max_distance)
+        print(movie)
+        print(editDistance)
+        if editDistance <= max_distance and editDistance != -1:
+          id_list.append(i)
+      return id_list
 
-      pass
 
     def disambiguate(self, clarification, candidates):
       """Creative Feature: Given a list of movies that the user could be talking about 
