@@ -344,10 +344,9 @@ class Chatbot:
       :param max_distance: the maximum edit distance to search for
       :returns: a list of movie indices with titles closest to the given title and within edit distance max_distance
       """
+
       title = self.process_title(title)
-      # print(title)
-      # movie = "hello"
-      # print(self.edit_distance(movie, title, max_distance))
+
       id_list = []
       movie_list = movielens.titles()
       for i in range(len(movie_list)):
@@ -355,9 +354,17 @@ class Chatbot:
        # if abs(len(movie)-len(title)) <= max_distance:
           #editDistance = self.edit_distance(movie, title, len(movie), len(title), max_distance)
         editDistance = self.edit_distance(movie, title, max_distance)
-        print(movie)
-        print(editDistance)
+        movie = re.sub("\s\((\d{4})\)", "", movie) # remove date
+        if re.search(", the\Z", movie) != None: # switch 'the" to beginning of sentence
+          movie = "the " + re.sub(", the\Z", "", movie)
+
+        editDistance_YearRemoved = self.edit_distance(movie, title, max_distance)
+        # print(movie)
+        # print(editDistance)
         if editDistance <= max_distance and editDistance != -1:
+          id_list.append(i)
+        
+        if editDistance_YearRemoved <= max_distance and editDistance_YearRemoved != -1:
           id_list.append(i)
       return id_list
 
