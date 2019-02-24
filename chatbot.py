@@ -119,7 +119,10 @@ class Chatbot:
             
         
         if len(self.user_ratings) >= 5:
-          suggestions = self.recommend(self.user_ratings, self.ratings)
+          #ACTUAL:
+          #suggestions = self.recommend(self.user_ratings, self.ratings)
+          #For testing:
+          suggestions = self.recommend(self.user_ratings, 1)
           print(suggestions)
 
         response = "I processed {} in starter mode!!".format(self.user_ratings)
@@ -358,8 +361,20 @@ class Chatbot:
 
       # Populate this list with k movie indices to recommend to the user.
       recommendations = []
-      print(user_ratings)
-      print(ratings_matrix)
+      for movie_id in range(len(ratings_matrix)):
+
+        if user_ratings[movie_id] is not 0: continue
+        rating_xi = 0
+        for j in range(len(user_ratings)):
+          if user_ratings[j] is 0: continue
+          sim = self.similarity(ratings_matrix[user_ratings[j]], ratings_matrix[movie_id])
+          rating_xi += sim * user_ratings[j]
+          recommendations.append([movie_id, rating_xi])
+
+      sorted_recs = sorted(recommendations, key=lambda tup: tup[1], reverse = True)
+      top_recs = [x[0] for x in sorted_recs[0:k]]
+      
+      print(recommendations)
 
       #############################################################################
       #                             END OF YOUR CODE                              #
