@@ -26,10 +26,11 @@ class Chatbot:
       self.titles, ratings = movielens.ratings()
       self.sentiment = movielens.sentiment()
 
+      self.user_ratings = []
       #############################################################################
       # TODO: Binarize the movie ratings matrix.                                  #
       #############################################################################
-
+      ratings = self.binarize(ratings)
       # Binarize the movie ratings before storing the binarized matrix.
       self.ratings = ratings
       #############################################################################
@@ -104,12 +105,24 @@ class Chatbot:
         if len(titles) > 1:
           return "Please tell me about only one movie at a time. Go ahead."
 
+        sentiment = self.extract_sentiment(line)
+
         movies = []
         for i in titles:
-          movies.append(self.find_movies_by_title(i))
+          #FOR CREATIVE: CHANGE THIS TO DISAMBIGUATE BETWEEN TITLES BY USING BELOW CALL to start:
+          #movies = self.find_movies_by_title(i)
+          id_list = self.find_movies_by_title(i)
+          if id_list == []:return "I'm sorry, I don't recognize that movie. Please enter in a different title."
+            #for simple mode: no disambiguate, just choose first id!
+          movies = (self.find_movies_by_title(i)[0], sentiment)        
+          self.user_ratings.append(movies)
+            
+        
+        if len(self.user_ratings) >= 5:
+          suggestions = self.recommend(self.user_ratings, self.ratings)
+          print(suggestions)
 
-        sentiment = self.extract_sentiment(line)
-        response = "I processed {} in starter mode!!".format(line)
+        response = "I processed {} in starter mode!!".format(self.user_ratings)
 
       #############################################################################
       #                             END OF YOUR CODE                              #
@@ -279,8 +292,8 @@ class Chatbot:
         for j in range(len(ratings[0])):
           r = ratings[i][j]
           if r == 0: continue
-          if r > 2.5: binarized_ratings[i][j] = 1
-          elif r <= 2.5: binarized_ratings[i][j] = -1
+          if r > threshold: binarized_ratings[i][j] = 1
+          elif r <= threshold: binarized_ratings[i][j] = -1
 
       #############################################################################
       #                             END OF YOUR CODE                              #
@@ -344,6 +357,8 @@ class Chatbot:
 
       # Populate this list with k movie indices to recommend to the user.
       recommendations = []
+      print(user_ratings)
+      print(ratings_matrix)
 
       #############################################################################
       #                             END OF YOUR CODE                              #
