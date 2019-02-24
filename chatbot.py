@@ -304,9 +304,9 @@ class Chatbot:
       for i in range(len(v1)):
           u = v1[i]
           v = v2[i]
-          lenx += u*u
-          leny += v*v
-          lenxy += u*v
+          lenu += u*u
+          lenv += v*v
+          lenuv += u*v
       cosine_sim = lenuv / float(math.sqrt(lenv*lenu))
       #############################################################################
       #                             END OF YOUR CODE                              #
