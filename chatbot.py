@@ -9,7 +9,8 @@ import re
 import math
 
 import numpy as np
-
+from nltk.tokenize import word_tokenize
+from PorterStemmer import PorterStemmer
 
 class Chatbot:
     """Simple class to implement the chatbot for PA 6."""
@@ -24,7 +25,15 @@ class Chatbot:
       # The values stored in each row i and column j is the rating for
       # movie i by user j
       self.titles, ratings = movielens.ratings()
-      self.sentiment = movielens.sentiment()
+
+      self.sentiment = {}
+      self.porter_stemmer = PorterStemmer()
+      sentimentCopy = movielens.sentiment()
+
+      for k, v in sentimentCopy.items():
+        key = self.porter_stemmer.stem(k)
+        self.sentiment[key] = v
+
 
       self.user_ratings = []
       #############################################################################
@@ -202,8 +211,52 @@ class Chatbot:
       :param text: a user-supplied line of text
       :returns: a numerical value for the sentiment of the text
       """
-      print(self.sentiment)
-      return 0
+
+      neg_words = ["n't", "not", "no", "never"]
+      punctuation = [".", ",", "!", "?", ";"]
+
+      title = self.extract_titles(text) #remove title so its not included in sentiment
+      if len(title) > 0: text = text.replace(title[0], "")
+
+      tokens = re.findall(r"[\w']+|[.,!?;]", text)
+      words = []
+      for t in tokens:
+        words = words + word_tokenize(t)
+
+      pos_count = 0
+      neg_count = 0
+      i = 0
+      while i < len(words):
+        w = self.porter_stemmer.stem(words[i])
+        if w in neg_words and i != len(words)-1: #Take opposite meaning of all words after
+          
+          j = i+1
+          wordToNegate = self.porter_stemmer.stem(words[j])
+          while wordToNegate not in punctuation and j < len(words):
+            if wordToNegate in self.sentiment:
+              if self.sentiment[wordToNegate] == "pos":
+                neg_count += 1
+              else:
+                pos_count += 1
+            j = j+1
+            if j <= (len(words)-1): wordToNegate = self.porter_stemmer.stem(words[j])
+          i = j #Jump ahead
+
+        else: #find straight sentiment of words
+          if w in self.sentiment:
+            if self.sentiment[w] == "pos":
+              pos_count += 1
+            else:
+              neg_count += 1
+          i = i+1
+        
+
+      if pos_count > neg_count:
+        return 1
+      elif neg_count > pos_count:
+        return -1
+      else:
+        return 0
 
     def extract_sentiment_for_movies(self, text):
       """Creative Feature: Extracts the sentiments from a line of text
