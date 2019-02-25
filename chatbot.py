@@ -132,36 +132,6 @@ class Chatbot:
         response = "I processed {} in creative mode!!".format(self.user_ratings)
 
        
-      else:
-
-        titles = self.extract_titles(line)
-        if len(titles) > 1:
-          return "Please tell me about only one movie at a time. Go ahead."
-
-        sentiment = self.extract_sentiment(line)
-
-        movies = []
-        for i in titles:
-          #FOR CREATIVE: CHANGE THIS TO DISAMBIGUATE BETWEEN TITLES BY USING BELOW CALL to start:
-          #movies = self.find_movies_by_title(i)
-          id_list = self.find_movies_by_title(i)
-          if id_list == []:return "I'm sorry, I don't recognize that movie. Please enter in a different title."
-          movies = (self.find_movies_by_title(i)[0], sentiment)        
-          self.user_ratings.append(movies)
-            
-      
-        if len(self.user_ratings) >= 5:
-          self.rating_vec = np.zeros(len(self.titles))
-          for movie in self.user_ratings:
-            self.rating_vec[movie[0]] = movie[1]
-          suggestions = self.recommend(self.rating_vec, self.ratings)
-          return "I suggest you watch \"{}\" based on your current preferences".format(self.titles[suggestions[0]][0])
-        
-        if sentiment > 0:
-          return "I see you liked \"{}\". What's another movie you've seen?".format(self.titles[id_list[0]][0])
-        else:
-          return "Okay, so you didn't like \"{}\". What's another movie you've seen recently?".format(self.titles[id_list[0]][0])
-
       ##NORMAL MODE!!
       else:
         titles = self.extract_titles(line)
@@ -468,6 +438,7 @@ class Chatbot:
       :param candidates: a list of movie indices
       :returns: a list of indices corresponding to the movies identified by the clarification
       """
+      
       pass
 
 
@@ -521,7 +492,11 @@ class Chatbot:
       # TODO: Compute cosine similarity between the two vectors.
       #############################################################################
       #TODO: this gets angry occasionally when dividing by 0!!
-      cos = (np.dot(u, v)) / float(np.sqrt(np.dot(u,u) * np.dot(v, v))) 
+      denom = float(np.sqrt(np.dot(u,u) * np.dot(v, v))) 
+      cos = 0
+      if denom != 0:
+        cos = (np.dot(u, v)) / denom
+
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
@@ -572,6 +547,8 @@ class Chatbot:
         recommendations.append([movie_id, rating_xi])
 
       sorted_recs = sorted(recommendations, key=lambda tup: tup[1], reverse = True) 
+      #print(sorted_recs)
+      
       top_recs = [x[0] for x in sorted_recs[0:k]]
 
       #############################################################################
