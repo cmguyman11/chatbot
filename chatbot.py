@@ -129,7 +129,7 @@ class Chatbot:
           suggestions = self.recommend(self.user_ratings, self.ratings)
           print(suggestions)
 
-        response = "I processed {} in creative mode!!".format(self.user_ratings)
+        return "I processed {} in creative mode!!".format(self.user_ratings)
 
        
       ##NORMAL MODE!!
