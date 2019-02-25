@@ -115,7 +115,36 @@ class Chatbot:
 
         movies = []
         for i in titles:
-          id_list = self.find_movies_closest_to_title(i)
+          #FOR CREATIVE: CHANGE THIS TO DISAMBIGUATE BETWEEN TITLES BY USING BELOW CALL to start:
+          #movies = self.find_movies_by_title(i)
+          id_list = self.find_movies_closest_to_title(i)          
+          if id_list == []:return "I'm sorry, I don't recognize that movie. Please enter in a different title."
+          print("Found the following movies: " + str(id_list))
+          #for simple mode: no disambiguate, just choose first id!
+          movies = (self.find_movies_closest_to_title(i)[0], sentiment)        
+          self.user_ratings.append(movies)
+            
+        
+        if len(self.user_ratings) >= 5:
+          suggestions = self.recommend(self.user_ratings, self.ratings)
+          print(suggestions)
+
+        response = "I processed {} in creative mode!!".format(self.user_ratings)
+
+       
+      else:
+
+        titles = self.extract_titles(line)
+        if len(titles) > 1:
+          return "Please tell me about only one movie at a time. Go ahead."
+
+        sentiment = self.extract_sentiment(line)
+
+        movies = []
+        for i in titles:
+          #FOR CREATIVE: CHANGE THIS TO DISAMBIGUATE BETWEEN TITLES BY USING BELOW CALL to start:
+          #movies = self.find_movies_by_title(i)
+          id_list = self.find_movies_by_title(i)
           if id_list == []:return "I'm sorry, I don't recognize that movie. Please enter in a different title."
           movies = (self.find_movies_by_title(i)[0], sentiment)        
           self.user_ratings.append(movies)
@@ -342,7 +371,7 @@ class Chatbot:
       
       for col in range(1, cols):
         for row in range(1, rows):
-          cost = 1
+          cost = 2
           if movie1[row-1] == movie2[col-1]:
             cost = 0
           deletion = 1 + grid[row-1][col]
@@ -374,21 +403,49 @@ class Chatbot:
       :param max_distance: the maximum edit distance to search for
       :returns: a list of movie indices with titles closest to the given title and within edit distance max_distance
       """
+
       title = self.process_title(title)
-      # print(title)
-      # movie = "hello"
-      # print(self.edit_distance(movie, title, max_distance))
+
       id_list = []
       movie_list = movielens.titles()
+      editDistances = {}
+      minEditDistance = math.inf
       for i in range(len(movie_list)):
         movie = self.process_title(movie_list[i][0]).lower()
-       # if abs(len(movie)-len(title)) <= max_distance:
-          #editDistance = self.edit_distance(movie, title, len(movie), len(title), max_distance)
+
         editDistance = self.edit_distance(movie, title, max_distance)
-        print(movie)
-        print(editDistance)
+
+        movie = re.sub("\s\((\d{4})\)", "", movie) # remove date
+        if re.search(", the\Z", movie) != None: # switch 'the" to beginning of sentence
+          movie = "the " + re.sub(", the\Z", "", movie)
+
+        editDistance_YearRemoved = self.edit_distance(movie, title, max_distance)
+
+        # update new minimum edit distance
+        if editDistance < minEditDistance and editDistance != -1:
+
+          minEditDistance = editDistance
+        if editDistance_YearRemoved < minEditDistance and editDistance_YearRemoved != -1:
+
+          minEditDistance = editDistance_YearRemoved
+
         if editDistance <= max_distance and editDistance != -1:
-          id_list.append(i)
+          if editDistance in editDistances:
+            editDistances[editDistance].append(i)
+          else:
+            editDistances[editDistance] = [i]
+
+        elif editDistance_YearRemoved <= max_distance and editDistance_YearRemoved != -1:
+          if editDistance_YearRemoved in editDistances:
+            editDistances[editDistance_YearRemoved].append(i)
+          else:
+            editDistances[editDistance_YearRemoved] = [i]
+      
+      #Find all movies that are the minimum edit distance away
+      options = editDistances[minEditDistance]
+      for i in options:
+        id_list.append(i)
+
       return id_list
 
 
