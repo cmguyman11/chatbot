@@ -105,11 +105,8 @@ class Chatbot:
       # possibly calling other functions. Although modular code is not graded,    #
       # it is highly recommended.                                                 #
       #############################################################################
+      ##CREATIVE MODE!!
       if self.creative:
-        response = "I processed {} in creative mode!!".format(line)
-
-      else:
-
         titles = self.extract_titles(line)
         if len(titles) > 1:
           return "Please tell me about only one movie at a time. Go ahead."
@@ -118,10 +115,37 @@ class Chatbot:
 
         movies = []
         for i in titles:
-          #FOR CREATIVE: CHANGE THIS TO DISAMBIGUATE BETWEEN TITLES BY USING BELOW CALL to start:
-          #movies = self.find_movies_by_title(i)
-          #id_list = self.find_movies_by_title(i)
           id_list = self.find_movies_closest_to_title(i)
+          if id_list == []:return "I'm sorry, I don't recognize that movie. Please enter in a different title."
+          movies = (self.find_movies_by_title(i)[0], sentiment)        
+          self.user_ratings.append(movies)
+            
+      
+        if len(self.user_ratings) >= 5:
+          self.rating_vec = np.zeros(len(self.titles))
+          for movie in self.user_ratings:
+            self.rating_vec[movie[0]] = movie[1]
+          suggestions = self.recommend(self.rating_vec, self.ratings)
+          return "I suggest you watch \"{}\" based on your current preferences".format(self.titles[suggestions[0]][0])
+        
+        if sentiment > 0:
+          return "I see you liked \"{}\". What's another movie you've seen?".format(self.titles[id_list[0]][0])
+        else:
+          return "Okay, so you didn't like \"{}\". What's another movie you've seen recently?".format(self.titles[id_list[0]][0])
+
+      ##NORMAL MODE!!
+      else:
+        titles = self.extract_titles(line)
+        if len(titles) > 1:
+          return "Please tell me about only one movie at a time. Go ahead."
+
+        sentiment = self.extract_sentiment(line)
+        movies = []
+        id_list = []
+
+        if titles == []:return "I'm sorry, I don't recognize that movie. Please enter a different title."
+        for i in titles:
+          id_list = self.find_movies_by_title(i)
           if id_list == []:return "I'm sorry, I don't recognize that movie. Please enter in a different title."
             #for simple mode: no disambiguate, just choose first id!
           movies = (self.find_movies_by_title(i)[0], sentiment)        
@@ -129,19 +153,21 @@ class Chatbot:
             
         
         if len(self.user_ratings) >= 5:
-          #ACTUAL:
-          #suggestions = self.recommend(self.user_ratings, self.ratings)
-          #For testing:
-          suggestions = self.recommend(self.user_ratings, 1)
-          print(suggestions)
+          self.rating_vec = np.zeros(len(self.titles))
+          for movie in self.user_ratings:
+            self.rating_vec[movie[0]] = movie[1]
+          suggestions = self.recommend(self.rating_vec, self.ratings)
+          return "I suggest you watch \"{}\" based on your current preferences".format(self.titles[suggestions[0]][0])
 
-        response = "I processed {} in starter mode!!".format(self.user_ratings)
+        if sentiment > 0:
+          return "I see you liked \"{}\". What's another movie you've seen?".format(self.titles[id_list[0]][0])
+        else:
+          return "Okay, so you didn't like \"{}\". What's another movie you've seen recently?".format(self.titles[id_list[0]][0])
 
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
-      return response
-
+      
     def extract_titles(self, text):
       """Extract potential movie titles from a line of text.
 
@@ -197,7 +223,8 @@ class Chatbot:
       id_list = []
       movie_list = movielens.titles()
       for i in range(len(movie_list)):
-        if title in movie_list[i][0].lower():
+        movie = re.sub(' \(\d{4}\)', '', movie_list[i][0].lower())
+        if title == movie: 
           id_list.append(i)
       return id_list
 
@@ -436,18 +463,12 @@ class Chatbot:
       #############################################################################
       # TODO: Compute cosine similarity between the two vectors.
       #############################################################################
-      lenx, leny, lenxy = 0, 0, 0
-      for i in range(len(u)):
-          x = v[i]
-          y = u[i]
-          lenx += x*x
-          leny += y*y
-          lenxy += x*y
-      cosine_sim = lenxy / float(math.sqrt(lenx*leny))
+      #TODO: this gets angry occasionally when dividing by 0!!
+      cos = (np.dot(u, v)) / float(np.sqrt(np.dot(u,u) * np.dot(v, v))) 
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
-      return cosine_sim
+      return cos
 
 
     def recommend(self, user_ratings, ratings_matrix, k=10, creative=False):
@@ -479,25 +500,27 @@ class Chatbot:
 
       # Populate this list with k movie indices to recommend to the user.
       recommendations = []
+      user_movies = []
+      for user_id in range(len(user_ratings)):
+        if user_ratings[user_id] != 0: user_movies.append(user_id)
+
       for movie_id in range(len(ratings_matrix)):
 
-        if user_ratings[movie_id] is not 0: continue
+        if movie_id in user_movies: continue
         rating_xi = 0
-        for j in range(len(user_ratings)):
-          if user_ratings[j] is 0: continue
-          sim = self.similarity(ratings_matrix[user_ratings[j]], ratings_matrix[movie_id])
+        for j in user_movies:
+          sim = self.similarity(ratings_matrix[j], ratings_matrix[movie_id])
           rating_xi += sim * user_ratings[j]
-          recommendations.append([movie_id, rating_xi])
+        
+        recommendations.append([movie_id, rating_xi])
 
-      sorted_recs = sorted(recommendations, key=lambda tup: tup[1], reverse = True)
+      sorted_recs = sorted(recommendations, key=lambda tup: tup[1], reverse = True) 
       top_recs = [x[0] for x in sorted_recs[0:k]]
-      
-      print(recommendations)
 
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
-      return recommendations
+      return top_recs
 
 
     #############################################################################
