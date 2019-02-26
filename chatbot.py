@@ -146,7 +146,7 @@ class Chatbot:
             #if not ambigous, add to list of movies to be confirmed.
             elif len(id_list) == 1 and title[1] != 0:
               self.confirmation_list.append((id_list[0], title[1]))      
-              self.user_ratings.append(self.confirmation_list)
+              self.user_ratings.append((id_list[0], title[1]))
 
         return self.complex_response()
        
@@ -198,6 +198,7 @@ class Chatbot:
       if len(self.problems_list) > 0:
         if len(self.problems_list[-1][0]) > 1:
           self.problem = 1
+          print(self.problems_list)
           return self.ambiguous_entry(self.problems_list[-1][0])
         elif self.problems_list[-1][1] == 0:
           self.problem = 2
@@ -214,9 +215,11 @@ class Chatbot:
     #deal with follow-up conversation in creative mode
     def handle_problem(self, line):
       #get problem list's first id and sentiment
+      print(self.problems_list)
       problem = self.problems_list.pop()
       id_list = problem[0]
       sentiment = problem[1]
+      print(problem)
 
       #Fix one problem at a time
       if self.problem == 1:
@@ -229,7 +232,7 @@ class Chatbot:
         self.problems_list.append((id_list, sentiment))
       else:
         self.confirmation_list.append((id_list[0], sentiment))      
-        self.user_ratings.append(self.confirmation_list)
+        self.user_ratings.append((id_list[0], sentiment))
 
       self.problem = 0
       return 
@@ -379,7 +382,11 @@ class Chatbot:
       :returns: a list of tuples, where the first item in the tuple is a movie title,
         and the second is the sentiment in the text toward that movie
       """
-      return []
+      final = []
+      titles = re.findall('"([^"]*)"', text)
+      for title in titles:
+        final.append((title, 0))
+      return final
 
     # def edit_distance(self, movie1, movie2, len1, len2):
     #   if len1 == 0:
@@ -483,9 +490,6 @@ class Chatbot:
             editDistances[editDistance_YearRemoved] = [i]
       
       #Find all movies that are the minimum edit distance away
-      print(minEditDistance)
-      print(editDistances)
-
       options = editDistances[minEditDistance]
       for i in options:
         id_list.append(i)
@@ -493,7 +497,6 @@ class Chatbot:
       return id_list
 
     def ambiguous_entry(self, id_list):
-      self.ambiguous = id_list
       response = "I found a few movies that fit that description. Did you mean "
       for i in range(len(id_list)):
         response += "\"" + self.titles[id_list[i]][0] + "\""
