@@ -188,7 +188,7 @@ class Chatbot:
     #handle complex problem responses in creative mode
     def complex_response(self):
       result = "Let's talk about some movies you've enjoyed!"
-      if len(self.user_ratings) >= 5:
+      if len(self.user_ratings) >= 5 and len(self.problems_list) == 0:
         self.rating_vec = np.zeros(len(self.titles))
         for movie in self.user_ratings:
           self.rating_vec[movie[0]] = movie[1]
@@ -215,11 +215,9 @@ class Chatbot:
     #deal with follow-up conversation in creative mode
     def handle_problem(self, line):
       #get problem list's first id and sentiment
-      print(self.problems_list)
       problem = self.problems_list.pop()
       id_list = problem[0]
       sentiment = problem[1]
-      print(problem)
 
       #Fix one problem at a time
       if self.problem == 1:
@@ -490,6 +488,7 @@ class Chatbot:
             editDistances[editDistance_YearRemoved] = [i]
       
       #Find all movies that are the minimum edit distance away
+      print(editDistances)
       options = editDistances[minEditDistance]
       for i in options:
         id_list.append(i)
