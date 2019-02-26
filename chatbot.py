@@ -9,8 +9,7 @@ import re
 import math
 
 import numpy as np
-from nltk.tokenize import word_tokenize
-from PorterStemmer import PorterStemmer
+
 
 class Chatbot:
     """Simple class to implement the chatbot for PA 6."""
@@ -25,15 +24,7 @@ class Chatbot:
       # The values stored in each row i and column j is the rating for
       # movie i by user j
       self.titles, ratings = movielens.ratings()
-
-      self.sentiment = {}
-      self.porter_stemmer = PorterStemmer()
-      sentimentCopy = movielens.sentiment()
-
-      for k, v in sentimentCopy.items():
-        key = self.porter_stemmer.stem(k)
-        self.sentiment[key] = v
-
+      self.sentiment = movielens.sentiment()
 
       self.user_ratings = []
       #############################################################################
@@ -105,8 +96,11 @@ class Chatbot:
       # possibly calling other functions. Although modular code is not graded,    #
       # it is highly recommended.                                                 #
       #############################################################################
-      ##CREATIVE MODE!!
       if self.creative:
+        response = "I processed {} in creative mode!!".format(line)
+
+      else:
+
         titles = self.extract_titles(line)
         if len(titles) > 1:
           return "Please tell me about only one movie at a time. Go ahead."
@@ -117,33 +111,6 @@ class Chatbot:
         for i in titles:
           #FOR CREATIVE: CHANGE THIS TO DISAMBIGUATE BETWEEN TITLES BY USING BELOW CALL to start:
           #movies = self.find_movies_by_title(i)
-          id_list = self.find_movies_closest_to_title(i)          
-          if id_list == []:return "I'm sorry, I don't recognize that movie. Please enter in a different title."
-          print("Found the following movies: " + str(id_list))
-          #for simple mode: no disambiguate, just choose first id!
-          movies = (self.find_movies_closest_to_title(i)[0], sentiment)        
-          self.user_ratings.append(movies)
-            
-        
-        if len(self.user_ratings) >= 5:
-          suggestions = self.recommend(self.user_ratings, self.ratings)
-          print(suggestions)
-
-        return "I processed {} in creative mode!!".format(self.user_ratings)
-
-       
-      ##NORMAL MODE!!
-      else:
-        titles = self.extract_titles(line)
-        if len(titles) > 1:
-          return "Please tell me about only one movie at a time. Go ahead."
-
-        sentiment = self.extract_sentiment(line)
-        movies = []
-        id_list = []
-
-        if titles == []:return "I'm sorry, I don't recognize that movie. Please enter a different title."
-        for i in titles:
           id_list = self.find_movies_by_title(i)
           if id_list == []:return "I'm sorry, I don't recognize that movie. Please enter in a different title."
             #for simple mode: no disambiguate, just choose first id!
@@ -152,21 +119,16 @@ class Chatbot:
             
         
         if len(self.user_ratings) >= 5:
-          self.rating_vec = np.zeros(len(self.titles))
-          for movie in self.user_ratings:
-            self.rating_vec[movie[0]] = movie[1]
-          suggestions = self.recommend(self.rating_vec, self.ratings)
-          return "I suggest you watch \"{}\" based on your current preferences".format(self.titles[suggestions[0]][0])
+          suggestions = self.recommend(self.user_ratings, self.ratings)
+          #print(suggestions)
 
-        if sentiment > 0:
-          return "I see you liked \"{}\". What's another movie you've seen?".format(self.titles[id_list[0]][0])
-        else:
-          return "Okay, so you didn't like \"{}\". What's another movie you've seen recently?".format(self.titles[id_list[0]][0])
+        response = "I processed {} in starter mode!!".format(self.user_ratings)
 
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
-      
+      return response
+
     def extract_titles(self, text):
       """Extract potential movie titles from a line of text.
 
@@ -186,20 +148,42 @@ class Chatbot:
       :param text: a user-supplied line of text that may contain movie titles
       :returns: list of movie titles that are potentially in the text
       """
-      #pattern regular = '[\"\'].+[\"\']'
-      titles = re.findall('"([^"]*)"', text)
+      # if creative:
+      # ex: I liked the notebook.
+      # remove punctuation, make all lowercase, iterate through each movie and check if that's a 
+      # substring of the sentence
+
+      if self.creative:
+        # strip text
+        text = text.lower()
+        text = re.sub(r'[,\'!?:]', '', text)
+
+        titles = []
+        # if self.creative:
+        movie_list = movielens.titles()
+        for i in range(len(movie_list)):
+          movie_stripped = ""
+
+          # movie_list[i][0] = movie_list[i][0].lower() # make lowercase
+          # movie_list[i][0] = re.sub(r'\s\([0-9]+\)', '', movie_list[i][0])
+          # movie_list[i][0] = re.sub(r'[,\':]', '', movie_list[i][0])
+
+          # movie compare
+          movie_stripped = movie_list[i][0].lower() # make lowercase
+          movie_stripped = re.sub(r'\s\([0-9]+\)', '', movie_stripped)
+          movie_stripped = re.sub(r'[,\':]', '', movie_stripped)
+
+          # if that movie appears as a whole word in the text
+          if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text):
+            titles.append(movie_list[i][0])
+
+      else:
+      # else: # just quotations
+      # #pattern regular = '[\"\'].+[\"\']'
+        titles = re.findall('"([^"]*)"', text)
+
       return titles
 
-    def process_title(self, title): 
-      title = title.lower()
-      word_list = title.split()
-      if (word_list[0] == 'and' or word_list[0] == 'the' or word_list[0] == 'a'):
-        word_list[-1] = word_list[-1] + ','
-        word_list.append(word_list[0])
-        word_list.pop(0)
-
-      title = " ".join(word_list)
-      return title
 
     def find_movies_by_title(self, title):
       """ Given a movie title, return a list of indices of matching movies.
@@ -217,13 +201,19 @@ class Chatbot:
       :param title: a string containing a movie title
       :returns: a list of indices of matching movies
       """
-      title = self.process_title(title)
+      title = title.lower()
+      word_list = title.split()
+      if (word_list[0] == 'and' or word_list[0] == 'the' or word_list[0] == 'a'):
+        word_list[-1] = word_list[-1] + ','
+        word_list.append(word_list[0])
+        word_list.pop(0)
+
+      title = " ".join(word_list)
 
       id_list = []
       movie_list = movielens.titles()
       for i in range(len(movie_list)):
-        movie = re.sub(' \(\d{4}\)', '', movie_list[i][0].lower())
-        if title == movie: 
+        if title in movie_list[i][0].lower():
           id_list.append(i)
       return id_list
 
@@ -245,52 +235,8 @@ class Chatbot:
       :param text: a user-supplied line of text
       :returns: a numerical value for the sentiment of the text
       """
-
-      neg_words = ["n't", "not", "no", "never"]
-      punctuation = [".", ",", "!", "?", ";"]
-
-      title = self.extract_titles(text) #remove title so its not included in sentiment
-      if len(title) > 0: text = text.replace(title[0], "")
-
-      tokens = re.findall(r"[\w']+|[.,!?;]", text)
-      words = []
-      for t in tokens:
-        words = words + word_tokenize(t)
-
-      pos_count = 0
-      neg_count = 0
-      i = 0
-      while i < len(words):
-        w = self.porter_stemmer.stem(words[i])
-        if w in neg_words and i != len(words)-1: #Take opposite meaning of all words after
-          
-          j = i+1
-          wordToNegate = self.porter_stemmer.stem(words[j])
-          while wordToNegate not in punctuation and j < len(words):
-            if wordToNegate in self.sentiment:
-              if self.sentiment[wordToNegate] == "pos":
-                neg_count += 1
-              else:
-                pos_count += 1
-            j = j+1
-            if j <= (len(words)-1): wordToNegate = self.porter_stemmer.stem(words[j])
-          i = j #Jump ahead
-
-        else: #find straight sentiment of words
-          if w in self.sentiment:
-            if self.sentiment[w] == "pos":
-              pos_count += 1
-            else:
-              neg_count += 1
-          i = i+1
-        
-
-      if pos_count > neg_count:
-        return 1
-      elif neg_count > pos_count:
-        return -1
-      else:
-        return 0
+      #print(self.sentiment)
+      return 0
 
     def extract_sentiment_for_movies(self, text):
       """Creative Feature: Extracts the sentiments from a line of text
@@ -309,51 +255,6 @@ class Chatbot:
         and the second is the sentiment in the text toward that movie
       """
       pass
-
-    # def edit_distance(self, movie1, movie2, len1, len2):
-    #   if len1 == 0:
-    #     return len2
-    #   if len2 == 0:
-    #     return len1
-
-    #   if movie1[len1-1] == movie2[len2-1]:
-    #     return self.edit_distance(movie1, movie2, len1-1, len2-1)
-
-    #   try1 = 1 + self.edit_distance(movie1, movie2, len1, len2-1)
-    #   try2 = 1 + self.edit_distance(movie1, movie2, len1-1, len2)
-    #   try3 = 1 + self.edit_distance(movie1, movie2, len1-1, len2-1)
-    #   # print(movie1)
-    #   # print(movie2)
-    #   # print(len1)
-    #   # print(len2)
-    #   return min(try1, try2, try3)
-
-    def edit_distance(self, movie1, movie2, max_distance):
-      rows = len(movie1) + 1
-      cols = len(movie2) + 1
-      grid = [[0 for col in range(cols)] for row in range(rows)]
-
-      for row in range(1, rows):
-        grid[row][0] = row
-      
-      for col in range(1, cols):
-        grid[0][col] = col
-      
-      for col in range(1, cols):
-        for row in range(1, rows):
-          cost = 2
-          if movie1[row-1] == movie2[col-1]:
-            cost = 0
-          deletion = 1 + grid[row-1][col]
-          insertion = 1 + grid[row][col-1]
-          sub = cost + grid[row-1][col-1]
-          grid[row][col] = min(deletion, insertion, sub)
-          # if grid[row][col] > max_distance:
-          #   return -1
-      #print(grid)
-      return grid[row][col]
-
-
 
     def find_movies_closest_to_title(self, title, max_distance=3):
       """Creative Feature: Given a potentially misspelled movie title,
@@ -374,50 +275,7 @@ class Chatbot:
       :returns: a list of movie indices with titles closest to the given title and within edit distance max_distance
       """
 
-      title = self.process_title(title)
-
-      id_list = []
-      movie_list = movielens.titles()
-      editDistances = {}
-      minEditDistance = math.inf
-      for i in range(len(movie_list)):
-        movie = self.process_title(movie_list[i][0]).lower()
-
-        editDistance = self.edit_distance(movie, title, max_distance)
-
-        movie = re.sub("\s\((\d{4})\)", "", movie) # remove date
-        if re.search(", the\Z", movie) != None: # switch 'the" to beginning of sentence
-          movie = "the " + re.sub(", the\Z", "", movie)
-
-        editDistance_YearRemoved = self.edit_distance(movie, title, max_distance)
-
-        # update new minimum edit distance
-        if editDistance < minEditDistance and editDistance != -1:
-
-          minEditDistance = editDistance
-        if editDistance_YearRemoved < minEditDistance and editDistance_YearRemoved != -1:
-
-          minEditDistance = editDistance_YearRemoved
-
-        if editDistance <= max_distance and editDistance != -1:
-          if editDistance in editDistances:
-            editDistances[editDistance].append(i)
-          else:
-            editDistances[editDistance] = [i]
-
-        elif editDistance_YearRemoved <= max_distance and editDistance_YearRemoved != -1:
-          if editDistance_YearRemoved in editDistances:
-            editDistances[editDistance_YearRemoved].append(i)
-          else:
-            editDistances[editDistance_YearRemoved] = [i]
-      
-      #Find all movies that are the minimum edit distance away
-      options = editDistances[minEditDistance]
-      for i in options:
-        id_list.append(i)
-
-      return id_list
-
+      pass
 
     def disambiguate(self, clarification, candidates):
       """Creative Feature: Given a list of movies that the user could be talking about 
@@ -438,7 +296,6 @@ class Chatbot:
       :param candidates: a list of movie indices
       :returns: a list of indices corresponding to the movies identified by the clarification
       """
-      
       pass
 
 
@@ -491,16 +348,18 @@ class Chatbot:
       #############################################################################
       # TODO: Compute cosine similarity between the two vectors.
       #############################################################################
-      #TODO: this gets angry occasionally when dividing by 0!!
-      denom = float(np.sqrt(np.dot(u,u) * np.dot(v, v))) 
-      cos = 0
-      if denom != 0:
-        cos = (np.dot(u, v)) / denom
-
+      lenx, leny, lenxy = 0, 0, 0
+      for i in range(len(u)):
+          x = v[i]
+          y = u[i]
+          lenx += x*x
+          leny += y*y
+          lenxy += x*y
+      cosine_sim = lenxy / float(math.sqrt(lenx*leny))
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
-      return cos
+      return cosine_sim
 
 
     def recommend(self, user_ratings, ratings_matrix, k=10, creative=False):
@@ -532,29 +391,13 @@ class Chatbot:
 
       # Populate this list with k movie indices to recommend to the user.
       recommendations = []
-      user_movies = []
-      for user_id in range(len(user_ratings)):
-        if user_ratings[user_id] != 0: user_movies.append(user_id)
-
-      for movie_id in range(len(ratings_matrix)):
-
-        if movie_id in user_movies: continue
-        rating_xi = 0
-        for j in user_movies:
-          sim = self.similarity(ratings_matrix[j], ratings_matrix[movie_id])
-          rating_xi += sim * user_ratings[j]
-        
-        recommendations.append([movie_id, rating_xi])
-
-      sorted_recs = sorted(recommendations, key=lambda tup: tup[1], reverse = True) 
-      #print(sorted_recs)
-      
-      top_recs = [x[0] for x in sorted_recs[0:k]]
+      #print(user_ratings)
+      #print(ratings_matrix)
 
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
-      return top_recs
+      return recommendations
 
 
     #############################################################################
