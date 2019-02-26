@@ -9,6 +9,8 @@ import re
 import math
 
 import numpy as np
+from nltk.tokenize import word_tokenize
+from PorterStemmer import PorterStemmer
 
 
 class Chatbot:
@@ -170,15 +172,20 @@ class Chatbot:
             
         
         if len(self.user_ratings) >= 5:
-          suggestions = self.recommend(self.user_ratings, self.ratings)
-          #print(suggestions)
+          self.rating_vec = np.zeros(len(self.titles))
+          for movie in self.user_ratings:
+            self.rating_vec[movie[0]] = movie[1]
+          suggestions = self.recommend(self.rating_vec, self.ratings)
+          return "I suggest you watch \"{}\" based on your current preferences".format(self.titles[suggestions[0]][0])
 
-        response = "I processed {} in starter mode!!".format(self.user_ratings)
+        if sentiment > 0:
+          return "I see you liked \"{}\". What's another movie you've seen?".format(self.titles[id_list[0]][0])
+        else:
+          return "Okay, so you didn't like \"{}\". What's another movie you've seen recently?".format(self.titles[id_list[0]][0])
 
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
-      return response
 
     
     #handle complex problem responses in creative mode
@@ -230,9 +237,6 @@ class Chatbot:
 
       self.problem = 0
       return 
-      
-
-        
     
     def extract_titles(self, text):
       """Extract potential movie titles from a line of text.
@@ -367,6 +371,31 @@ class Chatbot:
         final.append((title, 0))
       return final
 
+    def edit_distance(self, movie1, movie2, max_distance):
+      rows = len(movie1) + 1
+      cols = len(movie2) + 1
+      grid = [[0 for col in range(cols)] for row in range(rows)]
+
+      for row in range(1, rows):
+        grid[row][0] = row
+      
+      for col in range(1, cols):
+        grid[0][col] = col
+      
+      for col in range(1, cols):
+        for row in range(1, rows):
+          cost = 2
+          if movie1[row-1] == movie2[col-1]:
+            cost = 0
+          deletion = 1 + grid[row-1][col]
+          insertion = 1 + grid[row][col-1]
+          sub = cost + grid[row-1][col-1]
+          grid[row][col] = min(deletion, insertion, sub)
+          if grid[row][col] > max_distance:
+            return -1
+      #print(grid)
+      return grid[row][col]
+
     def find_movies_closest_to_title(self, title, max_distance=3):
       """Creative Feature: Given a potentially misspelled movie title,
       return a list of the movies in the dataset whose titles have the least edit distance
@@ -394,6 +423,13 @@ class Chatbot:
       minEditDistance = math.inf
       for i in range(len(movie_list)):
         movie = self.process_title(movie_list[i][0]).lower()
+        # new_max_distance = 0
+        # if title in movie:
+        #   extra = len(movie) - len(title)
+        #   new_max_distance = extra + max_distance
+        #   print(title)
+        #   print(movie)
+        #   print(new_max_distance)
 
         editDistance = self.edit_distance(movie, title, max_distance)
 
@@ -405,10 +441,8 @@ class Chatbot:
 
         # update new minimum edit distance
         if editDistance < minEditDistance and editDistance != -1:
-
           minEditDistance = editDistance
         if editDistance_YearRemoved < minEditDistance and editDistance_YearRemoved != -1:
-
           minEditDistance = editDistance_YearRemoved
 
         if editDistance <= max_distance and editDistance != -1:
@@ -425,9 +459,10 @@ class Chatbot:
       
       #Find all movies that are the minimum edit distance away
       print(editDistances)
-      options = editDistances[minEditDistance]
-      for i in options:
-        id_list.append(i)
+      if minEditDistance <= max_distance:
+        options = editDistances[minEditDistance]
+        for i in options:
+          id_list.append(i)
 
       return id_list
 
