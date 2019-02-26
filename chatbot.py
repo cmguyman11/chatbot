@@ -312,7 +312,7 @@ class Chatbot:
       - If multiple movies are found that match the given title, return a list
       containing all of the indices of these matching movies.
       - If exactly one movie is found that matches the given title, return a list
-      that contains the index of that matching movie.
+      that contains the inidex of that matching movie.
 
       Example:
         ids = chatbot.find_movies_by_title('Titanic')
@@ -395,8 +395,8 @@ class Chatbot:
           insertion = 1 + grid[row][col-1]
           sub = cost + grid[row-1][col-1]
           grid[row][col] = min(deletion, insertion, sub)
-          if grid[row][col] > max_distance:
-            return -1
+          # if grid[row][col] > max_distance:
+          #   return -1
       #print(grid)
       return grid[row][col]
 
