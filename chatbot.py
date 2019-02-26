@@ -234,9 +234,6 @@ class Chatbot:
 
       self.problem = 0
       return 
-      
-
-        
     
     def extract_titles(self, text):
       """Extract potential movie titles from a line of text.
@@ -386,24 +383,6 @@ class Chatbot:
         final.append((title, 0))
       return final
 
-    # def edit_distance(self, movie1, movie2, len1, len2):
-    #   if len1 == 0:
-    #     return len2
-    #   if len2 == 0:
-    #     return len1
-
-    #   if movie1[len1-1] == movie2[len2-1]:
-    #     return self.edit_distance(movie1, movie2, len1-1, len2-1)
-
-    #   try1 = 1 + self.edit_distance(movie1, movie2, len1, len2-1)
-    #   try2 = 1 + self.edit_distance(movie1, movie2, len1-1, len2)
-    #   try3 = 1 + self.edit_distance(movie1, movie2, len1-1, len2-1)
-    #   # print(movie1)
-    #   # print(movie2)
-    #   # print(len1)
-    #   # print(len2)
-    #   return min(try1, try2, try3)
-
     def edit_distance(self, movie1, movie2, max_distance):
       rows = len(movie1) + 1
       cols = len(movie2) + 1
@@ -424,11 +403,10 @@ class Chatbot:
           insertion = 1 + grid[row][col-1]
           sub = cost + grid[row-1][col-1]
           grid[row][col] = min(deletion, insertion, sub)
-          # if grid[row][col] > max_distance:
-          #   return -1
+          if grid[row][col] > max_distance:
+            return -1
       #print(grid)
       return grid[row][col]
-
 
 
     def find_movies_closest_to_title(self, title, max_distance=3):
@@ -458,6 +436,13 @@ class Chatbot:
       minEditDistance = math.inf
       for i in range(len(movie_list)):
         movie = self.process_title(movie_list[i][0]).lower()
+        # new_max_distance = 0
+        # if title in movie:
+        #   extra = len(movie) - len(title)
+        #   new_max_distance = extra + max_distance
+        #   print(title)
+        #   print(movie)
+        #   print(new_max_distance)
 
         editDistance = self.edit_distance(movie, title, max_distance)
 
@@ -469,10 +454,8 @@ class Chatbot:
 
         # update new minimum edit distance
         if editDistance < minEditDistance and editDistance != -1:
-
           minEditDistance = editDistance
         if editDistance_YearRemoved < minEditDistance and editDistance_YearRemoved != -1:
-
           minEditDistance = editDistance_YearRemoved
 
         if editDistance <= max_distance and editDistance != -1:
@@ -489,9 +472,10 @@ class Chatbot:
       
       #Find all movies that are the minimum edit distance away
       print(editDistances)
-      options = editDistances[minEditDistance]
-      for i in options:
-        id_list.append(i)
+      if minEditDistance <= max_distance:
+        options = editDistances[minEditDistance]
+        for i in options:
+          id_list.append(i)
 
       return id_list
 
