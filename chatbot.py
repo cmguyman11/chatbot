@@ -24,7 +24,20 @@ class Chatbot:
       # The values stored in each row i and column j is the rating for
       # movie i by user j
       self.titles, ratings = movielens.ratings()
-      self.sentiment = movielens.sentiment()
+
+      self.problems_list = []
+      self.problem = 0
+      self.confirmation_list = []
+      self.suggested = []
+
+      self.sentiment = {}
+      self.porter_stemmer = PorterStemmer()
+      sentimentCopy = movielens.sentiment()
+
+      for k, v in sentimentCopy.items():
+        key = self.porter_stemmer.stem(k)
+        self.sentiment[key] = v
+
 
       self.user_ratings = []
       #############################################################################
@@ -97,10 +110,46 @@ class Chatbot:
       # it is highly recommended.                                                 #
       #############################################################################
       if self.creative:
-        response = "I processed {} in creative mode!!".format(line)
+        #if there's a current problem to be addressed, return the required text and update global vars.
+        titles = []
+        response = ""
+        if self.problem: 
+          self.handle_problem(line)
+        #if multiple movies in one line, extract sentiment [("the notebook", 1), ("Titanic", -1)]
+        else:
+          if re.match('.*"([^"]*)"(.*"([^"]*)")+', line):
+            titles = self.extract_sentiment_for_movies(line)
+            for i in range(len(titles)): titles[i] = ([titles[i][0]], titles[i][1])
 
+          #if not multiple movies, simply update
+          else:
+            titles = [(self.extract_titles(line), self.extract_sentiment(line))]
+          
+          if titles == []:return "I'd love to talk more about movies!"
+          id_list = []
+
+          #titles = [(["title_a", "title_b", "title_c"] , 1), (["title"], -1), etc.]
+          #title = ([title list], sentiment)
+          for title in titles:
+            #i = string "title_a"  
+            for i in title[0]:
+              #add all possible movies to the list of titles.
+              id_list = id_list + self.find_movies_closest_to_title(i)
+
+            if id_list == []: return "I'm sorry, I don't think I quite understood that. Would you tell me about a movie you enjoyed?"
+            #if something is ambiguous--either id_list is longer than 1 movie or sentiment is 0, add to problems list
+            if len(id_list) > 1 or (title[1] == 0 and id_list != []): 
+              self.problem += 1
+              self.problems_list.append((id_list, title[1]))
+            #if not ambigous, add to list of movies to be confirmed.
+            elif len(id_list) == 1 and title[1] != 0:
+              self.confirmation_list.append((id_list[0], title[1]))      
+              self.user_ratings.append((id_list[0], title[1]))
+
+        return self.complex_response()
+       
+      ##NORMAL MODE!!
       else:
-
         titles = self.extract_titles(line)
         if len(titles) > 1:
           return "Please tell me about only one movie at a time. Go ahead."
@@ -108,9 +157,11 @@ class Chatbot:
         sentiment = self.extract_sentiment(line)
 
         movies = []
+        id_list = []
+
+        if titles == []:return "I'm sorry, I don't recognize that movie. Please enter a different title."
         for i in titles:
-          #FOR CREATIVE: CHANGE THIS TO DISAMBIGUATE BETWEEN TITLES BY USING BELOW CALL to start:
-          #movies = self.find_movies_by_title(i)
+
           id_list = self.find_movies_by_title(i)
           if id_list == []:return "I'm sorry, I don't recognize that movie. Please enter in a different title."
             #for simple mode: no disambiguate, just choose first id!
@@ -129,6 +180,60 @@ class Chatbot:
       #############################################################################
       return response
 
+    
+    #handle complex problem responses in creative mode
+    def complex_response(self):
+      result = "Let's talk about some movies you've enjoyed!"
+      if len(self.user_ratings) >= 5 and len(self.problems_list) == 0:
+        self.rating_vec = np.zeros(len(self.titles))
+        for movie in self.user_ratings:
+          self.rating_vec[movie[0]] = movie[1]
+        suggestions = self.recommend(self.rating_vec, self.ratings)
+        return "I suggest you watch \"{}\" based on your current preferences".format(self.titles[suggestions[0]][0])
+
+      if len(self.problems_list) > 0:
+        if len(self.problems_list[-1][0]) > 1:
+          self.problem = 1
+          print(self.problems_list)
+          return self.ambiguous_entry(self.problems_list[-1][0])
+        elif self.problems_list[-1][1] == 0:
+          self.problem = 2
+          return "I'm not sure whether you enjoyed \"{}\". Could you tell me a bit more about how you felt watching it?".format(self.titles[self.problems_list[-1][0][0]][0])
+
+      if len(self.confirmation_list) > 0:
+        if self.confirmation_list[-1][1] > 0:
+          result = "Great, I'm glad to hear you enjoyed \"{}\". What's another movie you've seen?".format(self.titles[self.confirmation_list[-1][0]][0])
+        else:
+          result = "Okay, so you didn't like \"{}\". What's another movie you've seen recently?".format(self.titles[self.confirmation_list[-1][0]][0])
+        self.confirmation_list.pop()
+      return result
+  
+    #deal with follow-up conversation in creative mode
+    def handle_problem(self, line):
+      #get problem list's first id and sentiment
+      problem = self.problems_list.pop()
+      id_list = problem[0]
+      sentiment = problem[1]
+
+      #Fix one problem at a time
+      if self.problem == 1:
+        id_list = self.disambiguate(line, id_list)
+      elif self.problem == 2:
+        sentiment = self.extract_sentiment(line)
+
+      if len(id_list) != 1 or sentiment == 0:
+        if id_list == []: id_list = problem[0] 
+        self.problems_list.append((id_list, sentiment))
+      else:
+        self.confirmation_list.append((id_list[0], sentiment))      
+        self.user_ratings.append((id_list[0], sentiment))
+
+      self.problem = 0
+      return 
+      
+
+        
+    
     def extract_titles(self, text):
       """Extract potential movie titles from a line of text.
 
@@ -213,7 +318,9 @@ class Chatbot:
       id_list = []
       movie_list = movielens.titles()
       for i in range(len(movie_list)):
-        if title in movie_list[i][0].lower():
+        movie_with_year = movie_list[i][0].lower()
+        movie = re.sub(' \(\d{4}\)', '', movie_with_year)
+        if title == movie or title == movie_with_year: 
           id_list.append(i)
       return id_list
 
@@ -254,7 +361,11 @@ class Chatbot:
       :returns: a list of tuples, where the first item in the tuple is a movie title,
         and the second is the sentiment in the text toward that movie
       """
-      pass
+      final = []
+      titles = re.findall('"([^"]*)"', text)
+      for title in titles:
+        final.append((title, 0))
+      return final
 
     def find_movies_closest_to_title(self, title, max_distance=3):
       """Creative Feature: Given a potentially misspelled movie title,
@@ -275,7 +386,61 @@ class Chatbot:
       :returns: a list of movie indices with titles closest to the given title and within edit distance max_distance
       """
 
-      pass
+      title = self.process_title(title)
+
+      id_list = []
+      movie_list = movielens.titles()
+      editDistances = {}
+      minEditDistance = math.inf
+      for i in range(len(movie_list)):
+        movie = self.process_title(movie_list[i][0]).lower()
+
+        editDistance = self.edit_distance(movie, title, max_distance)
+
+        movie = re.sub("\s\((\d{4})\)", "", movie) # remove date
+        if re.search(", the\Z", movie) != None: # switch 'the" to beginning of sentence
+          movie = "the " + re.sub(", the\Z", "", movie)
+
+        editDistance_YearRemoved = self.edit_distance(movie, title, max_distance)
+
+        # update new minimum edit distance
+        if editDistance < minEditDistance and editDistance != -1:
+
+          minEditDistance = editDistance
+        if editDistance_YearRemoved < minEditDistance and editDistance_YearRemoved != -1:
+
+          minEditDistance = editDistance_YearRemoved
+
+        if editDistance <= max_distance and editDistance != -1:
+          if editDistance in editDistances:
+            editDistances[editDistance].append(i)
+          else:
+            editDistances[editDistance] = [i]
+
+        elif editDistance_YearRemoved <= max_distance and editDistance_YearRemoved != -1:
+          if editDistance_YearRemoved in editDistances:
+            editDistances[editDistance_YearRemoved].append(i)
+          else:
+            editDistances[editDistance_YearRemoved] = [i]
+      
+      #Find all movies that are the minimum edit distance away
+      print(editDistances)
+      options = editDistances[minEditDistance]
+      for i in options:
+        id_list.append(i)
+
+      return id_list
+
+    def ambiguous_entry(self, id_list):
+      response = "I found a few movies that fit that description. Did you mean "
+      for i in range(len(id_list)):
+        response += "\"" + self.titles[id_list[i]][0] + "\""
+        if i < len(id_list) - 1:
+          response += ", "
+        if i == len(id_list) - 2:
+          response += "or "
+      response += "?" 
+      return response
 
     def disambiguate(self, clarification, candidates):
       """Creative Feature: Given a list of movies that the user could be talking about 
@@ -296,7 +461,18 @@ class Chatbot:
       :param candidates: a list of movie indices
       :returns: a list of indices corresponding to the movies identified by the clarification
       """
-      pass
+      fitting = []
+      year = ""
+      for movie in candidates:
+        title = self.titles[movie][0]
+        year = re.findall("\d{4}", title.split()[-1])[0]
+        if (not clarification.isdigit() and clarification in title) or (year in clarification):
+          fitting.append(movie)
+
+      if clarification.isdigit() and int(clarification) < len(candidates):
+        fitting.append(candidates[int(clarification) - 1])
+
+      return fitting
 
 
     #############################################################################

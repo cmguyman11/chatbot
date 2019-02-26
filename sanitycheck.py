@@ -178,6 +178,24 @@ def test_disambiguate():
     print("Testing disambiguate() functionality...")
     chatbot = Chatbot(True)
 
+    # clarification = "2"
+    # candidates = [3812, 4325, 5399, 6294, 6735, 7274, 7670, 7842]
+    # if assertListEquals(
+    #     chatbot.disambiguate(clarification, candidates),
+    #     [4325],
+    #     "Incorrect output for disambiguate('{}', {})".format(clarification, candidates),
+    #     orderMatters=False
+    # ):
+
+    # clarification = "Sorcerer's Stone"
+    # candidates = [3812, 4325, 5399, 6294, 6735, 7274, 7670, 7842]
+    # if assertListEquals(
+    #     chatbot.disambiguate(clarification, candidates),
+    #     [3812],
+    #     "Incorrect output for disambiguate('{}', {})".format(clarification, candidates),
+    #     orderMatters=False
+    # ):
+
     clarification = "1997"
     candidates = [1359, 2716]
     if assertListEquals(
