@@ -294,6 +294,17 @@ class Chatbot:
       return titles
 
 
+    def process_title(self, title):
+      title = title.lower()
+      word_list = title.split()
+      if (word_list[0] == 'and' or word_list[0] == 'the' or word_list[0] == 'a'):
+        word_list[-1] = word_list[-1] + ','
+        word_list.append(word_list[0])
+        word_list.pop(0)
+
+      title = " ".join(word_list)
+      return title
+
     def find_movies_by_title(self, title):
       """ Given a movie title, return a list of indices of matching movies.
 
@@ -310,14 +321,7 @@ class Chatbot:
       :param title: a string containing a movie title
       :returns: a list of indices of matching movies
       """
-      title = title.lower()
-      word_list = title.split()
-      if (word_list[0] == 'and' or word_list[0] == 'the' or word_list[0] == 'a'):
-        word_list[-1] = word_list[-1] + ','
-        word_list.append(word_list[0])
-        word_list.pop(0)
-
-      title = " ".join(word_list)
+      title = self.process_title(title)
 
       id_list = []
       movie_list = movielens.titles()
