@@ -61,7 +61,7 @@ class Chatbot:
       # TODO: Write a short greeting message                                      #
       #############################################################################
 
-      greeting_message = "Hey there! I am your movie chatbot here to help recommend a movie to you. First, tell me about a movie you have seen and whether or not you liked it."
+      greeting_message = "Well hello there! I'm a helpful chatbot ready to suggest a movie to you today. First, tell me about a movie you have seen and whether or not you liked it."
 
       #############################################################################
       #                             END OF YOUR CODE                              #
@@ -160,11 +160,14 @@ class Chatbot:
         movies = []
         id_list = []
 
-        if titles == []:return "I'm sorry, I don't recognize that movie. Please enter a different title."
+        if titles == []:return "I'd love to talk about movies!"
         for i in titles:
           id_list = self.find_movies_by_title(i)
           if id_list == []:return "I'm sorry, I don't recognize that movie. Please enter in a different title."
             #for simple mode: no disambiguate, just choose first id!
+          if len(id_list) > 1:
+            return self.ambiguous_entry(id_list)
+
           movies = (self.find_movies_by_title(i)[0], sentiment)        
           self.user_ratings.append(movies)
             
@@ -264,7 +267,7 @@ class Chatbot:
     def process_title(self, title): 
       title = title.lower()
       word_list = title.split()
-      if (word_list[0] == 'and' or word_list[0] == 'the' or word_list[0] == 'a'):
+      if (word_list[0] in ['and', 'the', 'a', 'an']):
         word_list[-1] = word_list[-1] + ','
         word_list.append(word_list[0])
         word_list.pop(0)
@@ -295,7 +298,8 @@ class Chatbot:
       for i in range(len(movie_list)):
         movie_with_year = movie_list[i][0].lower()
         movie = re.sub(' \(\d{4}\)', '', movie_with_year)
-        if title == movie or title == movie_with_year: 
+        movie_noalt = re.sub(' \(.*\)', '', movie)
+        if title in [movie, movie_with_year, movie_noalt]: 
           id_list.append(i)
       return id_list
 
@@ -488,7 +492,6 @@ class Chatbot:
             editDistances[editDistance_YearRemoved] = [i]
       
       #Find all movies that are the minimum edit distance away
-      print(editDistances)
       options = editDistances[minEditDistance]
       for i in options:
         id_list.append(i)
@@ -561,13 +564,9 @@ class Chatbot:
       #############################################################################
 
       # The starter code returns a new matrix shaped like ratings but full of zeros.
-      binarized_ratings = np.zeros_like(ratings)
-      for i in range(len(ratings)):
-        for j in range(len(ratings[0])):
-          r = ratings[i][j]
-          if r == 0: continue
-          if r > threshold: binarized_ratings[i][j] = 1
-          elif r <= threshold: binarized_ratings[i][j] = -1
+      binarized_ratings = np.where(np.logical_or(ratings > threshold, ratings == 0), ratings, -1 )
+      binarized_ratings = np.where(binarized_ratings < threshold, binarized_ratings, 1)
+
 
       #############################################################################
       #                             END OF YOUR CODE                              #
@@ -629,9 +628,7 @@ class Chatbot:
 
       # Populate this list with k movie indices to recommend to the user.
       recommendations = []
-      user_movies = []
-      for user_id in range(len(user_ratings)):
-        if user_ratings[user_id] != 0: user_movies.append(user_id)
+      user_movies = np.nonzero(user_ratings)[0]
 
       for movie_id in range(len(ratings_matrix)):
 
