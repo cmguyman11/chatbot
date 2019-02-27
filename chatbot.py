@@ -140,7 +140,7 @@ class Chatbot:
             for i in title[0]:
               #add all possible movies to the list of titles.
               id_list = id_list + self.find_movies_closest_to_title(i)
-
+            id_list = list(set(id_list))
             if id_list == []: return "I'm sorry, I don't think I quite understood that. Would you tell me about a movie you enjoyed?"
             #if something is ambiguous--either id_list is longer than 1 movie or sentiment is 0, add to problems list
             if len(id_list) > 1 or (title[1] == 0 and id_list != []): 
