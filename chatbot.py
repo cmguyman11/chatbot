@@ -136,8 +136,8 @@ class Chatbot:
             #i = string "title_a"  
             for i in title[0]:
               #add all possible movies to the list of titles.
-              id_list = id_list + self.find_movies_closest_to_title(i)
-
+              id_list = id_list + self.find_movies_by_title(i)
+              #id_list = id_list + self.find_movies_closest_to_title(i)
             if id_list == []: return "I'm sorry, I don't think I quite understood that. Would you tell me about a movie you enjoyed?"
             #if something is ambiguous--either id_list is longer than 1 movie or sentiment is 0, add to problems list
             if len(id_list) > 1 or (title[1] == 0 and id_list != []): 
@@ -161,11 +161,8 @@ class Chatbot:
         movies = []
         id_list = []
 
-        # emma
-        print("wrong")
         # broken here
         if titles == []:return "I'm sorry, I don't recognize that movie. Please enter a different title."
-        print("no titles")
         if titles == []:return "I'd love to talk about movies!"
         for i in titles:
 
@@ -265,32 +262,30 @@ class Chatbot:
       :param text: a user-supplied line of text that may contain movie titles
       :returns: list of movie titles that are potentially in the text
       """
-      # if creative:
-      # ex: I liked the notebook.
-      # remove punctuation, make all lowercase, iterate through each movie and check if that's a 
-      # substring of the sentence
-
       if self.creative:
-        # strip text
+        # strip text of case and punctuation
         text = text.lower()
         text = re.sub(r'[,\'!?:]', '', text)
 
         titles = []
-        # if self.creative:
         movie_list = movielens.titles()
         for i in range(len(movie_list)):
           movie_stripped = ""
 
-          # movie_list[i][0] = movie_list[i][0].lower() # make lowercase
-          # movie_list[i][0] = re.sub(r'\s\([0-9]+\)', '', movie_list[i][0])
-          # movie_list[i][0] = re.sub(r'[,\':]', '', movie_list[i][0])
-
-          # movie compare
+          # strip movie of case and year
           movie_stripped = movie_list[i][0].lower() # make lowercase
-          movie_stripped = re.sub(r'\s\([0-9]+\)', '', movie_stripped)
-          movie_stripped = re.sub(r'[,\':]', '', movie_stripped)
+          movie_stripped = re.sub(' \(\d{4}\)', '', movie_stripped)
+          #movie_stripped = re.sub(r'\s\([0-9]+\)', '', movie_stripped)
+          movie_stripped = re.sub(r'[.(),\':]', '', movie_stripped)
 
-          # if that movie appears as a whole word in the text
+          # handles foreign/alternate case
+          if 'aka' in movie_stripped:
+            movies = movie_stripped.split(' aka ')
+            for m in movies:
+              if re.search(r"\b" + re.escape(m) + r"\b", text):
+                titles.append(m)
+
+          # handles case of one movie
           if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text):
             titles.append(movie_stripped)
 
@@ -315,6 +310,7 @@ class Chatbot:
       title = " ".join(word_list)
       return title
 
+
     def find_movies_by_title(self, title):
       """ Given a movie title, return a list of indices of matching movies.
 
@@ -335,16 +331,30 @@ class Chatbot:
         # handles incorrect capitalization already
         # todo: handle alternate/foreign titles
         # if it's a substring of the entire movie 
+        # extraction also extracts the proper movie
+
         title = self.process_title(title)
         id_list = []
         movie_list = movielens.titles()
         for i in range(len(movie_list)):
           movie_with_year = movie_list[i][0].lower()
           movie = re.sub(' \(\d{4}\)', '', movie_with_year)
+          if 'se7en' in movie:
+            print(movie)
+
+          # Alternative movie case 
+          if 'a.k.a.' in movie_with_year:
+            movies = movie_with_year.split('a.k.a.')
+            for m in movies:
+              if title == m: id_list.append(i)
+              print(m)
+
+          # Singular movie case 
           if title == movie or title == movie_with_year: 
             id_list.append(i)
 
 
+      # NORMAL MODE
       else:
         title = self.process_title(title)
         id_list = []
