@@ -16,6 +16,7 @@ DATA_FOLDER = ME / 'data'
 RATINGS_FILE = str(DATA_FOLDER / 'ratings.txt')
 MOVIES_FILE = str(DATA_FOLDER / 'movies.txt')
 SENTIMENT_FILE = str(DATA_FOLDER / 'sentiment.txt')
+EXTREME_SENTIMENT_FILE = str(DATA_FOLDER / 'AFINN-111.txt')
 
 
 def ratings(src_filename=RATINGS_FILE, delimiter='%', header=False, quoting=csv.QUOTE_MINIMAL):
@@ -56,6 +57,13 @@ def titles(src_filename=MOVIES_FILE, delimiter='%', header=False, quoting=csv.QU
 
 
 def sentiment(src_filename=SENTIMENT_FILE, delimiter=',', header=False, quoting=csv.QUOTE_MINIMAL):
+    with open(src_filename, 'r') as f:
+        reader = csv.reader(f, delimiter=delimiter, quoting=quoting)
+        if header:
+            next(reader)  # Skip the first line.
+        return dict(reader)
+
+def extreme_sentiment(src_filename=EXTREME_SENTIMENT_FILE, delimiter='	', header=False, quoting=csv.QUOTE_MINIMAL):
     with open(src_filename, 'r') as f:
         reader = csv.reader(f, delimiter=delimiter, quoting=quoting)
         if header:

@@ -35,6 +35,8 @@ class Chatbot:
       self.sentiment = {}
       self.porter_stemmer = PorterStemmer()
       sentimentCopy = movielens.sentiment()
+      self.advanced_sentiment = movielens.extreme_sentiment()
+      print(self.advanced_sentiment)
 
       for k, v in sentimentCopy.items():
         key = self.porter_stemmer.stem(k)
@@ -126,6 +128,7 @@ class Chatbot:
           #if not multiple movies, simply update
           else:
             titles = [(self.extract_titles(line), self.extract_sentiment(line))]
+            print(titles)
           
           if titles == []:return "I'd love to talk more about movies!"
           id_list = []
@@ -135,6 +138,7 @@ class Chatbot:
           for title in titles:
             #i = string "title_a"  
             for i in title[0]:
+              print("here: " + i)
               #add all possible movies to the list of titles.
               id_list = id_list + self.find_movies_closest_to_title(i)
 
@@ -494,14 +498,6 @@ class Chatbot:
       minEditDistance = math.inf
       for i in range(len(movie_list)):
         movie = self.process_title(movie_list[i][0]).lower()
-        # new_max_distance = 0
-        # if title in movie:
-        #   extra = len(movie) - len(title)
-        #   new_max_distance = extra + max_distance
-        #   print(title)
-        #   print(movie)
-        #   print(new_max_distance)
-
         editDistance = self.edit_distance(movie, title, max_distance)
 
         movie = re.sub("\s\((\d{4})\)", "", movie) # remove date
