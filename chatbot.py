@@ -62,7 +62,7 @@ class Chatbot:
       # TODO: Write a short greeting message                                      #
       #############################################################################
 
-      greeting_message = "Hey there! I am your movie chatbot here to help recommend a movie to you. First, tell me about a movie you have seen and whether or not you liked it."
+      greeting_message = "Well hello there! I'm a helpful chatbot ready to suggest a movie to you today. First, tell me about a movie you have seen and whether or not you liked it."
 
       #############################################################################
       #                             END OF YOUR CODE                              #
@@ -166,11 +166,15 @@ class Chatbot:
         # broken here
         if titles == []:return "I'm sorry, I don't recognize that movie. Please enter a different title."
         print("no titles")
+        if titles == []:return "I'd love to talk about movies!"
         for i in titles:
 
           id_list = self.find_movies_by_title(i)
           if id_list == []:return "I'm sorry, I don't recognize that movie. Please enter in a different title."
             #for simple mode: no disambiguate, just choose first id!
+          if len(id_list) > 1:
+            return self.ambiguous_entry(id_list)
+
           movies = (self.find_movies_by_title(i)[0], sentiment)        
           self.user_ratings.append(movies)
             
@@ -303,7 +307,7 @@ class Chatbot:
     def process_title(self, title):
       title = title.lower()
       word_list = title.split()
-      if (word_list[0] == 'and' or word_list[0] == 'the' or word_list[0] == 'a'):
+      if (word_list[0] in ['and', 'the', 'a', 'an']):
         word_list[-1] = word_list[-1] + ','
         word_list.append(word_list[0])
         word_list.pop(0)
@@ -340,17 +344,18 @@ class Chatbot:
           if title == movie or title == movie_with_year: 
             id_list.append(i)
 
-      # NORMAL MODE 
+
       else:
         title = self.process_title(title)
-
         id_list = []
         movie_list = movielens.titles()
         for i in range(len(movie_list)):
           movie_with_year = movie_list[i][0].lower()
           movie = re.sub(' \(\d{4}\)', '', movie_with_year)
-          if title == movie or title == movie_with_year: 
+          movie_noalt = re.sub(' \(.*\)', '', movie)
+          if title in [movie, movie_with_year, movie_noalt]: 
             id_list.append(i)
+            
       return id_list
 
 
@@ -371,8 +376,51 @@ class Chatbot:
       :param text: a user-supplied line of text
       :returns: a numerical value for the sentiment of the text
       """
-      #print(self.sentiment)
-      return 0
+      neg_words = ["n't", "not", "no", "never"]
+      punctuation = [".", ",", "!", "?", ";"]
+
+      title = self.extract_titles(text) #remove title so its not included in sentiment
+      if len(title) > 0: text = text.replace(title[0], "")
+
+      tokens = re.findall(r"[\w']+|[.,!?;]", text)
+      words = []
+      for t in tokens:
+        words = words + word_tokenize(t)
+
+      pos_count = 0
+      neg_count = 0
+      i = 0
+      while i < len(words):
+        w = self.porter_stemmer.stem(words[i])
+        if w in neg_words and i != len(words)-1: #Take opposite meaning of all words after
+
+          j = i+1
+          wordToNegate = self.porter_stemmer.stem(words[j])
+          while wordToNegate not in punctuation and j < len(words):
+            if wordToNegate in self.sentiment:
+              if self.sentiment[wordToNegate] == "pos":
+                neg_count += 1
+              else:
+                pos_count += 1
+            j = j+1
+            if j <= (len(words)-1): wordToNegate = self.porter_stemmer.stem(words[j])
+          i = j #Jump ahead
+
+        else: #find straight sentiment of words
+          if w in self.sentiment:
+            if self.sentiment[w] == "pos":
+              pos_count += 1
+            else:
+              neg_count += 1
+          i = i+1
+
+
+      if pos_count > neg_count:
+        return 1
+      elif neg_count > pos_count:
+        return -1
+      else:
+        return 0
 
     def extract_sentiment_for_movies(self, text):
       """Creative Feature: Extracts the sentiments from a line of text
@@ -483,7 +531,6 @@ class Chatbot:
             editDistances[editDistance_YearRemoved] = [i]
       
       #Find all movies that are the minimum edit distance away
-      print(editDistances)
       if minEditDistance <= max_distance:
         options = editDistances[minEditDistance]
         for i in options:
@@ -557,13 +604,9 @@ class Chatbot:
       #############################################################################
 
       # The starter code returns a new matrix shaped like ratings but full of zeros.
-      binarized_ratings = np.zeros_like(ratings)
-      for i in range(len(ratings)):
-        for j in range(len(ratings[0])):
-          r = ratings[i][j]
-          if r == 0: continue
-          if r > threshold: binarized_ratings[i][j] = 1
-          elif r <= threshold: binarized_ratings[i][j] = -1
+      binarized_ratings = np.where(np.logical_or(ratings > threshold, ratings == 0), ratings, -1 )
+      binarized_ratings = np.where(binarized_ratings < threshold, binarized_ratings, 1)
+
 
       #############################################################################
       #                             END OF YOUR CODE                              #
@@ -627,8 +670,22 @@ class Chatbot:
 
       # Populate this list with k movie indices to recommend to the user.
       recommendations = []
-      #print(user_ratings)
-      #print(ratings_matrix)
+      user_movies = np.nonzero(user_ratings)[0]
+
+      for movie_id in range(len(ratings_matrix)):
+
+        if movie_id in user_movies: continue
+        rating_xi = 0
+        for j in user_movies:
+          sim = self.similarity(ratings_matrix[j], ratings_matrix[movie_id])
+          rating_xi += sim * user_ratings[j]
+        
+        recommendations.append([movie_id, rating_xi])
+
+      sorted_recs = sorted(recommendations, key=lambda tup: tup[1], reverse = True) 
+      #print(sorted_recs)
+      
+      top_recs = [x[0] for x in sorted_recs[0:k]]
 
       #############################################################################
       #                             END OF YOUR CODE                              #
