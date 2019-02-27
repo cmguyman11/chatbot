@@ -32,7 +32,7 @@ class Chatbot:
       self.confirmation_list = []
       self.suggested = []
 
-      self.extreme_sentiment = movielens.extract_sentiment()
+      #self.extreme_sentiment = movielens.extract_sentiment()
 
       self.sentiment = {}
       self.porter_stemmer = PorterStemmer()
@@ -129,6 +129,7 @@ class Chatbot:
           else:
             titles = [(self.extract_titles(line), self.extract_sentiment(line))]
           
+          print(titles)
           if titles == []:return "I'd love to talk more about movies!"
           id_list = []
 
@@ -444,7 +445,7 @@ class Chatbot:
         else:
           return -2
 
-      if pos_count > neg_count
+      if pos_count > neg_count:
         return 1
       elif neg_count > pos_count:
         return -1
