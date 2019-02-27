@@ -648,7 +648,6 @@ class Chatbot:
 
       # Populate this list with k movie indices to recommend to the user.
       recommendations = []
-<<<<<<< HEAD
       user_movies = np.nonzero(user_ratings)[0]
 
       for movie_id in range(len(ratings_matrix)):
@@ -665,10 +664,6 @@ class Chatbot:
       #print(sorted_recs)
       
       top_recs = [x[0] for x in sorted_recs[0:k]]
-=======
-      #print(user_ratings)
-      #print(ratings_matrix)
->>>>>>> 2c66572625d42ac366a94a543b17104415a31f6b
 
       #############################################################################
       #                             END OF YOUR CODE                              #
