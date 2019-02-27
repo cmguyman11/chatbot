@@ -269,13 +269,12 @@ class Chatbot:
       # ex: I liked the notebook.
       # remove punctuation, make all lowercase, iterate through each movie and check if that's a 
       # substring of the sentence
-
+      titles = []
       if self.creative:
         # strip text
         text = text.lower()
         text = re.sub(r'[,\'!?:]', '', text)
 
-        titles = []
         # if self.creative:
         movie_list = movielens.titles()
         for i in range(len(movie_list)):
@@ -293,12 +292,11 @@ class Chatbot:
           # if that movie appears as a whole word in the text
           if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text):
             titles.append(movie_stripped)
-
       # NORMAL MODE
-      else:
+
       # else: # just quotations
       # #pattern regular = '[\"\'].+[\"\']'
-        titles = re.findall('"([^"]*)"', text)
+      titles = titles + re.findall('"([^"]*)"', text)
 
       return titles
 
