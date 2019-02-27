@@ -402,6 +402,7 @@ class Chatbot:
       pos_count = 0
       neg_count = 0
       i = 0
+      foundIntensifier = False
       while i < len(words):
         w = self.porter_stemmer.stem(words[i])
         # check if really pos or really neg
@@ -409,6 +410,7 @@ class Chatbot:
           if w in extra_pos_words: found_extra_pos = True
           if w in extra_neg_words: found_extra_neg = True
           if w in intensifiers and i != len(words)-1:
+            foundIntensifier = True
             nextWord = words[i+1]
             if nextWord in self.sentiment:
               if self.sentiment[nextWord] == "pos":
@@ -422,8 +424,14 @@ class Chatbot:
           while wordToNegate not in punctuation and j < len(words):
             if wordToNegate in self.sentiment:
               if self.sentiment[wordToNegate] == "pos":
+                if self.creative and foundIntensifier: 
+                  found_extra_neg = True
+                  foundIntensifier = False
                 neg_count += 1
               else:
+                if self.creative and foundIntensifier: 
+                  found_extra_pos = True
+                  foundIntensifier = False
                 pos_count += 1
             j = j+1
             if j <= (len(words)-1): wordToNegate = self.porter_stemmer.stem(words[j])
