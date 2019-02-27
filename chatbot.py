@@ -32,11 +32,11 @@ class Chatbot:
       self.confirmation_list = []
       self.suggested = []
 
+      self.extreme_sentiment = movielens.extract_sentiment()
+
       self.sentiment = {}
       self.porter_stemmer = PorterStemmer()
       sentimentCopy = movielens.sentiment()
-      self.advanced_sentiment = movielens.extreme_sentiment()
-      print(self.advanced_sentiment)
 
       for k, v in sentimentCopy.items():
         key = self.porter_stemmer.stem(k)
@@ -128,7 +128,6 @@ class Chatbot:
           #if not multiple movies, simply update
           else:
             titles = [(self.extract_titles(line), self.extract_sentiment(line))]
-            print(titles)
           
           if titles == []:return "I'd love to talk more about movies!"
           id_list = []
@@ -138,7 +137,6 @@ class Chatbot:
           for title in titles:
             #i = string "title_a"  
             for i in title[0]:
-              print("here: " + i)
               #add all possible movies to the list of titles.
               id_list = id_list + self.find_movies_closest_to_title(i)
 
@@ -360,7 +358,6 @@ class Chatbot:
             
       return id_list
 
-
     def extract_sentiment(self, text):
       """Extract a sentiment rating from a line of text.
 
@@ -381,6 +378,18 @@ class Chatbot:
       neg_words = ["n't", "not", "no", "never"]
       punctuation = [".", ",", "!", "?", ";"]
 
+      # for creative mode, add intensifiers
+      extra_pos_words = ["loved", "fantastic", "incredible", "amazing", "great", "outstanding", "superb", "brilliant", "terrific"]
+      extra_neg_words = ["awful", "terrible", "bad", "horrible", "disastrous", "hated", "sucked"]
+      intensifiers = ["so", "very", "really", "extremely", "totally", "extra", "absolutely", "completely", "utterly"]
+
+      extra_pos_words = [self.porter_stemmer.stem(s) for s in extra_pos_words]
+      extra_neg_words = [self.porter_stemmer.stem(s) for s in extra_neg_words]
+      intensifiers = [self.porter_stemmer.stem(s) for s in intensifiers]
+
+      found_extra_pos = False
+      found_extra_neg = False
+
       title = self.extract_titles(text) #remove title so its not included in sentiment
       if len(title) > 0: text = text.replace(title[0], "")
 
@@ -394,8 +403,19 @@ class Chatbot:
       i = 0
       while i < len(words):
         w = self.porter_stemmer.stem(words[i])
+        # check if really pos or really neg
+        if self.creative:
+          if w in extra_pos_words: found_extra_pos = True
+          if w in extra_neg_words: found_extra_neg = True
+          if w in intensifiers and i != len(words)-1:
+            nextWord = words[i+1]
+            if nextWord in self.sentiment:
+              if self.sentiment[nextWord] == "pos":
+                found_extra_pos = True
+              else:
+                found_extra_neg = True
+        #NORMAL mode starts
         if w in neg_words and i != len(words)-1: #Take opposite meaning of all words after
-
           j = i+1
           wordToNegate = self.porter_stemmer.stem(words[j])
           while wordToNegate not in punctuation and j < len(words):
@@ -416,8 +436,15 @@ class Chatbot:
               neg_count += 1
           i = i+1
 
+      if self.creative and (found_extra_neg or found_extra_pos):
+        if found_extra_neg and found_extra_pos:
+          return 0
+        elif found_extra_pos:
+          return 2
+        else:
+          return -2
 
-      if pos_count > neg_count:
+      if pos_count > neg_count
         return 1
       elif neg_count > pos_count:
         return -1
@@ -498,6 +525,14 @@ class Chatbot:
       minEditDistance = math.inf
       for i in range(len(movie_list)):
         movie = self.process_title(movie_list[i][0]).lower()
+        # new_max_distance = 0
+        # if title in movie:
+        #   extra = len(movie) - len(title)
+        #   new_max_distance = extra + max_distance
+        #   print(title)
+        #   print(movie)
+        #   print(new_max_distance)
+
         editDistance = self.edit_distance(movie, title, max_distance)
 
         movie = re.sub("\s\((\d{4})\)", "", movie) # remove date
