@@ -161,7 +161,11 @@ class Chatbot:
         movies = []
         id_list = []
 
+        # emma
+        print("wrong")
+        # broken here
         if titles == []:return "I'm sorry, I don't recognize that movie. Please enter a different title."
+        print("no titles")
         for i in titles:
 
           id_list = self.find_movies_by_title(i)
@@ -284,8 +288,9 @@ class Chatbot:
 
           # if that movie appears as a whole word in the text
           if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text):
-            titles.append(movie_list[i][0])
+            titles.append(movie_stripped)
 
+      # NORMAL MODE
       else:
       # else: # just quotations
       # #pattern regular = '[\"\'].+[\"\']'
@@ -294,6 +299,7 @@ class Chatbot:
       return titles
 
 
+    # Helper function 
     def process_title(self, title):
       title = title.lower()
       word_list = title.split()
@@ -321,15 +327,30 @@ class Chatbot:
       :param title: a string containing a movie title
       :returns: a list of indices of matching movies
       """
-      title = self.process_title(title)
+      if self.creative:
+        # handles incorrect capitalization already
+        # todo: handle alternate/foreign titles
+        # if it's a substring of the entire movie 
+        title = self.process_title(title)
+        id_list = []
+        movie_list = movielens.titles()
+        for i in range(len(movie_list)):
+          movie_with_year = movie_list[i][0].lower()
+          movie = re.sub(' \(\d{4}\)', '', movie_with_year)
+          if title == movie or title == movie_with_year: 
+            id_list.append(i)
 
-      id_list = []
-      movie_list = movielens.titles()
-      for i in range(len(movie_list)):
-        movie_with_year = movie_list[i][0].lower()
-        movie = re.sub(' \(\d{4}\)', '', movie_with_year)
-        if title == movie or title == movie_with_year: 
-          id_list.append(i)
+      # NORMAL MODE 
+      else:
+        title = self.process_title(title)
+
+        id_list = []
+        movie_list = movielens.titles()
+        for i in range(len(movie_list)):
+          movie_with_year = movie_list[i][0].lower()
+          movie = re.sub(' \(\d{4}\)', '', movie_with_year)
+          if title == movie or title == movie_with_year: 
+            id_list.append(i)
       return id_list
 
 
