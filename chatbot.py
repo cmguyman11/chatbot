@@ -12,6 +12,7 @@ import numpy as np
 from nltk.tokenize import word_tokenize
 from PorterStemmer import PorterStemmer
 
+
 class Chatbot:
     """Simple class to implement the chatbot for PA 6."""
 
@@ -110,7 +111,6 @@ class Chatbot:
       # possibly calling other functions. Although modular code is not graded,    #
       # it is highly recommended.                                                 #
       #############################################################################
-      ##CREATIVE MODE!!
       if self.creative:
         #if there's a current problem to be addressed, return the required text and update global vars.
         titles = []
@@ -157,11 +157,13 @@ class Chatbot:
           return "Please tell me about only one movie at a time. Go ahead."
 
         sentiment = self.extract_sentiment(line)
+
         movies = []
         id_list = []
 
         if titles == []:return "I'd love to talk about movies!"
         for i in titles:
+
           id_list = self.find_movies_by_title(i)
           if id_list == []:return "I'm sorry, I don't recognize that movie. Please enter in a different title."
             #for simple mode: no disambiguate, just choose first id!
@@ -187,6 +189,7 @@ class Chatbot:
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
+
     
     #handle complex problem responses in creative mode
     def complex_response(self):
@@ -237,9 +240,6 @@ class Chatbot:
 
       self.problem = 0
       return 
-      
-
-        
     
     def extract_titles(self, text):
       """Extract potential movie titles from a line of text.
@@ -260,11 +260,44 @@ class Chatbot:
       :param text: a user-supplied line of text that may contain movie titles
       :returns: list of movie titles that are potentially in the text
       """
-      #pattern regular = '[\"\'].+[\"\']'
-      titles = re.findall('"([^"]*)"', text)
+      # if creative:
+      # ex: I liked the notebook.
+      # remove punctuation, make all lowercase, iterate through each movie and check if that's a 
+      # substring of the sentence
+
+      if self.creative:
+        # strip text
+        text = text.lower()
+        text = re.sub(r'[,\'!?:]', '', text)
+
+        titles = []
+        # if self.creative:
+        movie_list = movielens.titles()
+        for i in range(len(movie_list)):
+          movie_stripped = ""
+
+          # movie_list[i][0] = movie_list[i][0].lower() # make lowercase
+          # movie_list[i][0] = re.sub(r'\s\([0-9]+\)', '', movie_list[i][0])
+          # movie_list[i][0] = re.sub(r'[,\':]', '', movie_list[i][0])
+
+          # movie compare
+          movie_stripped = movie_list[i][0].lower() # make lowercase
+          movie_stripped = re.sub(r'\s\([0-9]+\)', '', movie_stripped)
+          movie_stripped = re.sub(r'[,\':]', '', movie_stripped)
+
+          # if that movie appears as a whole word in the text
+          if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text):
+            titles.append(movie_list[i][0])
+
+      else:
+      # else: # just quotations
+      # #pattern regular = '[\"\'].+[\"\']'
+        titles = re.findall('"([^"]*)"', text)
+
       return titles
 
-    def process_title(self, title): 
+
+    def process_title(self, title):
       title = title.lower()
       word_list = title.split()
       if (word_list[0] in ['and', 'the', 'a', 'an']):
@@ -282,7 +315,7 @@ class Chatbot:
       - If multiple movies are found that match the given title, return a list
       containing all of the indices of these matching movies.
       - If exactly one movie is found that matches the given title, return a list
-      that contains the index of that matching movie.
+      that contains the inidex of that matching movie.
 
       Example:
         ids = chatbot.find_movies_by_title('Titanic')
@@ -321,52 +354,8 @@ class Chatbot:
       :param text: a user-supplied line of text
       :returns: a numerical value for the sentiment of the text
       """
-
-      neg_words = ["n't", "not", "no", "never"]
-      punctuation = [".", ",", "!", "?", ";"]
-
-      title = self.extract_titles(text) #remove title so its not included in sentiment
-      if len(title) > 0: text = text.replace(title[0], "")
-
-      tokens = re.findall(r"[\w']+|[.,!?;]", text)
-      words = []
-      for t in tokens:
-        words = words + word_tokenize(t)
-
-      pos_count = 0
-      neg_count = 0
-      i = 0
-      while i < len(words):
-        w = self.porter_stemmer.stem(words[i])
-        if w in neg_words and i != len(words)-1: #Take opposite meaning of all words after
-          
-          j = i+1
-          wordToNegate = self.porter_stemmer.stem(words[j])
-          while wordToNegate not in punctuation and j < len(words):
-            if wordToNegate in self.sentiment:
-              if self.sentiment[wordToNegate] == "pos":
-                neg_count += 1
-              else:
-                pos_count += 1
-            j = j+1
-            if j <= (len(words)-1): wordToNegate = self.porter_stemmer.stem(words[j])
-          i = j #Jump ahead
-
-        else: #find straight sentiment of words
-          if w in self.sentiment:
-            if self.sentiment[w] == "pos":
-              pos_count += 1
-            else:
-              neg_count += 1
-          i = i+1
-        
-
-      if pos_count > neg_count:
-        return 1
-      elif neg_count > pos_count:
-        return -1
-      else:
-        return 0
+      #print(self.sentiment)
+      return 0
 
     def extract_sentiment_for_movies(self, text):
       """Creative Feature: Extracts the sentiments from a line of text
@@ -389,24 +378,6 @@ class Chatbot:
       for title in titles:
         final.append((title, 0))
       return final
-
-    # def edit_distance(self, movie1, movie2, len1, len2):
-    #   if len1 == 0:
-    #     return len2
-    #   if len2 == 0:
-    #     return len1
-
-    #   if movie1[len1-1] == movie2[len2-1]:
-    #     return self.edit_distance(movie1, movie2, len1-1, len2-1)
-
-    #   try1 = 1 + self.edit_distance(movie1, movie2, len1, len2-1)
-    #   try2 = 1 + self.edit_distance(movie1, movie2, len1-1, len2)
-    #   try3 = 1 + self.edit_distance(movie1, movie2, len1-1, len2-1)
-    #   # print(movie1)
-    #   # print(movie2)
-    #   # print(len1)
-    #   # print(len2)
-    #   return min(try1, try2, try3)
 
     def edit_distance(self, movie1, movie2, max_distance):
       rows = len(movie1) + 1
@@ -432,8 +403,6 @@ class Chatbot:
           #   return -1
       #print(grid)
       return grid[row][col]
-
-
 
     def find_movies_closest_to_title(self, title, max_distance=3):
       """Creative Feature: Given a potentially misspelled movie title,
@@ -462,6 +431,13 @@ class Chatbot:
       minEditDistance = math.inf
       for i in range(len(movie_list)):
         movie = self.process_title(movie_list[i][0]).lower()
+        # new_max_distance = 0
+        # if title in movie:
+        #   extra = len(movie) - len(title)
+        #   new_max_distance = extra + max_distance
+        #   print(title)
+        #   print(movie)
+        #   print(new_max_distance)
 
         editDistance = self.edit_distance(movie, title, max_distance)
 
@@ -473,10 +449,8 @@ class Chatbot:
 
         # update new minimum edit distance
         if editDistance < minEditDistance and editDistance != -1:
-
           minEditDistance = editDistance
         if editDistance_YearRemoved < minEditDistance and editDistance_YearRemoved != -1:
-
           minEditDistance = editDistance_YearRemoved
 
         if editDistance <= max_distance and editDistance != -1:
@@ -492,9 +466,17 @@ class Chatbot:
             editDistances[editDistance_YearRemoved] = [i]
       
       #Find all movies that are the minimum edit distance away
+<<<<<<< HEAD
       options = editDistances[minEditDistance]
       for i in options:
         id_list.append(i)
+=======
+      print(editDistances)
+      if minEditDistance <= max_distance:
+        options = editDistances[minEditDistance]
+        for i in options:
+          id_list.append(i)
+>>>>>>> 2c66572625d42ac366a94a543b17104415a31f6b
 
       return id_list
 
@@ -587,16 +569,18 @@ class Chatbot:
       #############################################################################
       # TODO: Compute cosine similarity between the two vectors.
       #############################################################################
-      #TODO: this gets angry occasionally when dividing by 0!!
-      denom = float(np.sqrt(np.dot(u,u) * np.dot(v, v))) 
-      cos = 0
-      if denom != 0:
-        cos = (np.dot(u, v)) / denom
-
+      lenx, leny, lenxy = 0, 0, 0
+      for i in range(len(u)):
+          x = v[i]
+          y = u[i]
+          lenx += x*x
+          leny += y*y
+          lenxy += x*y
+      cosine_sim = lenxy / float(math.sqrt(lenx*leny))
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
-      return cos
+      return cosine_sim
 
 
     def recommend(self, user_ratings, ratings_matrix, k=10, creative=False):
@@ -628,6 +612,7 @@ class Chatbot:
 
       # Populate this list with k movie indices to recommend to the user.
       recommendations = []
+<<<<<<< HEAD
       user_movies = np.nonzero(user_ratings)[0]
 
       for movie_id in range(len(ratings_matrix)):
@@ -644,11 +629,15 @@ class Chatbot:
       #print(sorted_recs)
       
       top_recs = [x[0] for x in sorted_recs[0:k]]
+=======
+      #print(user_ratings)
+      #print(ratings_matrix)
+>>>>>>> 2c66572625d42ac366a94a543b17104415a31f6b
 
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
-      return top_recs
+      return recommendations
 
 
     #############################################################################
