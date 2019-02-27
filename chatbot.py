@@ -509,17 +509,10 @@ class Chatbot:
             editDistances[editDistance_YearRemoved] = [i]
       
       #Find all movies that are the minimum edit distance away
-<<<<<<< HEAD
-      options = editDistances[minEditDistance]
-      for i in options:
-        id_list.append(i)
-=======
-      print(editDistances)
       if minEditDistance <= max_distance:
         options = editDistances[minEditDistance]
         for i in options:
           id_list.append(i)
->>>>>>> 2c66572625d42ac366a94a543b17104415a31f6b
 
       return id_list
 
