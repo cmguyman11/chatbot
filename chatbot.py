@@ -139,8 +139,13 @@ class Chatbot:
             #i = string "title_a"  
             for i in title[0]:
               #add all possible movies to the list of titles.
-              id_list = id_list + self.find_movies_closest_to_title(i)
-            id_list = list(set(id_list))
+              
+              id_list = id_list + self.find_movies_by_title(i)
+              if id_list == []:
+                id_list = id_list + self.find_movies_closest_to_title(i)
+                
+              id_list = list(set(id_list))
+
             if id_list == []: return "I'm sorry, I don't think I quite understood that. Would you tell me about a movie you enjoyed?"
             #if something is ambiguous--either id_list is longer than 1 movie or sentiment is 0, add to problems list
             if len(id_list) > 1 or (title[1] == 0 and id_list != []): 
@@ -164,11 +169,8 @@ class Chatbot:
         movies = []
         id_list = []
 
-        # emma
-        print("wrong")
         # broken here
         if titles == []:return "I'm sorry, I don't recognize that movie. Please enter a different title."
-        print("no titles")
         if titles == []:return "I'd love to talk about movies!"
         for i in titles:
 
@@ -268,39 +270,48 @@ class Chatbot:
       :param text: a user-supplied line of text that may contain movie titles
       :returns: list of movie titles that are potentially in the text
       """
-      # if creative:
-      # ex: I liked the notebook.
-      # remove punctuation, make all lowercase, iterate through each movie and check if that's a 
-      # substring of the sentence
-      titles = []
       if self.creative:
-        # strip text
+        # strip text of case and punctuation
         text = text.lower()
         text = re.sub(r'[,\'!?:]', '', text)
-
-        # if self.creative:
+        alt_title_dict = {}
+        titles = []
         movie_list = movielens.titles()
         for i in range(len(movie_list)):
           movie_stripped = ""
+          matched = False
+          # strip movie of case and year
+          original_movie = movie_list[i][0].lower() # make lowercase
 
-          # movie_list[i][0] = movie_list[i][0].lower() # make lowercase
-          # movie_list[i][0] = re.sub(r'\s\([0-9]+\)', '', movie_list[i][0])
-          # movie_list[i][0] = re.sub(r'[,\':]', '', movie_list[i][0])
+          movie_date_stripped = re.sub(' \(\d{4}\)', '', original_movie)
 
-          # movie compare
-          movie_stripped = movie_list[i][0].lower() # make lowercase
-          movie_stripped = re.sub(r'\s\([0-9]+\)', '', movie_stripped)
-          movie_stripped = re.sub(r'[,\':]', '', movie_stripped)
+          movie_stripped = re.sub(r'[.,\':]', '', movie_date_stripped)
 
-          # if that movie appears as a whole word in the text
-          if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text):
-            titles.append(movie_stripped)
+          alt_titles = re.findall(' \(.[^\)\(]*\)', movie_stripped) # find foreign titles in parenthesis
+          
+          if len(alt_titles) > 0:
+            for i in range(len(alt_titles)):
+              alt_title = re.sub('[\(\)]', '', alt_titles[i])
+              alt_title = self.process_title_reverse(re.sub('aka ', '', alt_title).lstrip())
+
+              if alt_title in text:
+                titles.append(movie_date_stripped)
+                matched = True
+
+          movie_with_parens = movie_stripped
+          movie_stripped = re.sub(' \(.*\)', '', movie_stripped)
+
+          # # handles case of one movie
+          if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text) and not matched:
+            titles.append(movie_date_stripped)
+
       # NORMAL MODE
 
       # else: # just quotations
       # #pattern regular = '[\"\'].+[\"\']'
       titles = titles + re.findall('"([^"]*)"', text)
 
+      #print("titles: " + str(titles))
       return titles
 
 
@@ -308,13 +319,26 @@ class Chatbot:
     def process_title(self, title):
       title = title.lower()
       word_list = title.split()
-      if (word_list[0] in ['and', 'the', 'a', 'an']):
+      if (word_list[0] in ['and', 'the', 'a', 'an', 'le', 'la']):
         word_list[-1] = word_list[-1] + ','
         word_list.append(word_list[0])
         word_list.pop(0)
 
       title = " ".join(word_list)
       return title
+
+    def process_title_reverse(self, title):
+      title = title.lower()
+      word_list = title.split()
+      lastIndex = len(word_list) - 1
+      if (word_list[lastIndex] in ['and', 'the', 'a', 'an', 'le', 'la']):
+        word_list[lastIndex] = re.sub("," , '', word_list[lastIndex])
+        word_list = [word_list[lastIndex]] + word_list
+        word_list.pop(lastIndex + 1)
+
+      title = " ".join(word_list)
+      return title
+
 
     def find_movies_by_title(self, title):
       """ Given a movie title, return a list of indices of matching movies.
@@ -336,16 +360,21 @@ class Chatbot:
         # handles incorrect capitalization already
         # todo: handle alternate/foreign titles
         # if it's a substring of the entire movie 
+        # extraction also extracts the proper movie
+
         title = self.process_title(title)
         id_list = []
         movie_list = movielens.titles()
         for i in range(len(movie_list)):
           movie_with_year = movie_list[i][0].lower()
           movie = re.sub(' \(\d{4}\)', '', movie_with_year)
+
+          # Singular movie case 
           if title == movie or title == movie_with_year: 
             id_list.append(i)
 
 
+      # NORMAL MODE
       else:
         title = self.process_title(title)
         id_list = []
