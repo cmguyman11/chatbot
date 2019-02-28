@@ -293,12 +293,13 @@ class Chatbot:
       :param text: a user-supplied line of text that may contain movie titles
       :returns: list of movie titles that are potentially in the text
       """
+      titles = []
       if self.creative:
         # strip text of case and punctuation
         text = text.lower()
         text = re.sub(r'[,\'!?:]', '', text)
         alt_title_dict = {}
-        titles = []
+
         movie_list = movielens.titles()
         for i in range(len(movie_list)):
           movie_stripped = ""
