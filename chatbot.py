@@ -272,38 +272,44 @@ class Chatbot:
         movie_list = movielens.titles()
         for i in range(len(movie_list)):
           movie_stripped = ""
-
+          matched = False
           # strip movie of case and year
-          movie_stripped = movie_list[i][0].lower() # make lowercase
+          original_movie = movie_list[i][0].lower() # make lowercase
 
-          movie_stripped = re.sub(' \(\d{4}\)', '', movie_stripped)
+
+          movie_stripped = re.sub(' \(\d{4}\)', '', original_movie)
           #movie_stripped = re.sub(r'\s\([0-9]+\)', '', movie_stripped)
           movie_stripped = re.sub(r'[.,\':]', '', movie_stripped)
           #print(movie_stripped)
-          alt_titles = re.findall(' \(.*\)', movie_stripped)
+          alt_titles = re.findall('\(.[^\)\(]*\)', movie_stripped)
           if len(alt_titles) > 0:
             for i in range(len(alt_titles)):
               alt_title = re.sub('[\(\)]', '', alt_titles[i])
-              alt_title = re.sub('aka ', '', alt_title).lstrip()
-              alt_title_dict[movie_stripped] = alt_title
+              alt_title = self.process_title(re.sub('aka ', '', alt_title).lstrip())
+              if "zombi" in original_movie:
+                print(original_movie)
+                print("alt_title " + alt_title)
+              if alt_title in text:
+                titles.append(original_movie)
+                matched = True
 
           movie_with_parens = movie_stripped
           movie_stripped = re.sub(' \(.*\)', '', movie_stripped)
 
-          # handles case of one movie
-          if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text):
-            titles.append(movie_stripped)
-            if movie_with_parens in alt_title_dict:
-              print("alt title")
-              print(alt_title_dict[movie_with_parens])
-              titles.append(alt_title_dict[movie_with_parens])
+          # # handles case of one movie
+          if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text) and not matched:
+            titles.append(original_movie)
+          #   if movie_with_parens in alt_title_dict:
+          #     print("alt title")
+          #     print(alt_title_dict[movie_with_parens])
+          #     titles.append(alt_title_dict[movie_with_parens])
 
       # NORMAL MODE
       else:
       # else: # just quotations
       # #pattern regular = '[\"\'].+[\"\']'
         titles = re.findall('"([^"]*)"', text)
-
+      #print("titles: " + str(titles))
       return titles
 
 
@@ -311,7 +317,7 @@ class Chatbot:
     def process_title(self, title):
       title = title.lower()
       word_list = title.split()
-      if (word_list[0] in ['and', 'the', 'a', 'an']):
+      if (word_list[0] in ['and', 'the', 'a', 'an', 'le', 'la']):
         word_list[-1] = word_list[-1] + ','
         word_list.append(word_list[0])
         word_list.pop(0)
