@@ -32,6 +32,8 @@ class Chatbot:
       self.confirmation_list = []
       self.suggested = []
 
+      #self.extreme_sentiment = movielens.extract_sentiment()
+
       self.sentiment = {}
       self.porter_stemmer = PorterStemmer()
       sentimentCopy = movielens.sentiment()
@@ -127,6 +129,7 @@ class Chatbot:
           else:
             titles = [(self.extract_titles(line), self.extract_sentiment(line))]
           
+          print(titles)
           if titles == []:return "I'd love to talk more about movies!"
           id_list = []
 
@@ -137,7 +140,7 @@ class Chatbot:
             for i in title[0]:
               #add all possible movies to the list of titles.
               id_list = id_list + self.find_movies_closest_to_title(i)
-
+            id_list = list(set(id_list))
             if id_list == []: return "I'm sorry, I don't think I quite understood that. Would you tell me about a movie you enjoyed?"
             #if something is ambiguous--either id_list is longer than 1 movie or sentiment is 0, add to problems list
             if len(id_list) > 1 or (title[1] == 0 and id_list != []): 
@@ -161,6 +164,11 @@ class Chatbot:
         movies = []
         id_list = []
 
+        # emma
+        print("wrong")
+        # broken here
+        if titles == []:return "I'm sorry, I don't recognize that movie. Please enter a different title."
+        print("no titles")
         if titles == []:return "I'd love to talk about movies!"
         for i in titles:
 
@@ -264,13 +272,12 @@ class Chatbot:
       # ex: I liked the notebook.
       # remove punctuation, make all lowercase, iterate through each movie and check if that's a 
       # substring of the sentence
-
+      titles = []
       if self.creative:
         # strip text
         text = text.lower()
         text = re.sub(r'[,\'!?:]', '', text)
 
-        titles = []
         # if self.creative:
         movie_list = movielens.titles()
         for i in range(len(movie_list)):
@@ -287,16 +294,17 @@ class Chatbot:
 
           # if that movie appears as a whole word in the text
           if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text):
-            titles.append(movie_list[i][0])
+            titles.append(movie_stripped)
+      # NORMAL MODE
 
-      else:
       # else: # just quotations
       # #pattern regular = '[\"\'].+[\"\']'
-        titles = re.findall('"([^"]*)"', text)
+      titles = titles + re.findall('"([^"]*)"', text)
 
       return titles
 
 
+    # Helper function 
     def process_title(self, title):
       title = title.lower()
       word_list = title.split()
@@ -324,18 +332,32 @@ class Chatbot:
       :param title: a string containing a movie title
       :returns: a list of indices of matching movies
       """
-      title = self.process_title(title)
+      if self.creative:
+        # handles incorrect capitalization already
+        # todo: handle alternate/foreign titles
+        # if it's a substring of the entire movie 
+        title = self.process_title(title)
+        id_list = []
+        movie_list = movielens.titles()
+        for i in range(len(movie_list)):
+          movie_with_year = movie_list[i][0].lower()
+          movie = re.sub(' \(\d{4}\)', '', movie_with_year)
+          if title == movie or title == movie_with_year: 
+            id_list.append(i)
 
-      id_list = []
-      movie_list = movielens.titles()
-      for i in range(len(movie_list)):
-        movie_with_year = movie_list[i][0].lower()
-        movie = re.sub(' \(\d{4}\)', '', movie_with_year)
-        movie_noalt = re.sub(' \(.*\)', '', movie)
-        if title in [movie, movie_with_year, movie_noalt]: 
-          id_list.append(i)
+
+      else:
+        title = self.process_title(title)
+        id_list = []
+        movie_list = movielens.titles()
+        for i in range(len(movie_list)):
+          movie_with_year = movie_list[i][0].lower()
+          movie = re.sub(' \(\d{4}\)', '', movie_with_year)
+          movie_noalt = re.sub(' \(.*\)', '', movie)
+          if title in [movie, movie_with_year, movie_noalt]: 
+            id_list.append(i)
+            
       return id_list
-
 
     def extract_sentiment(self, text):
       """Extract a sentiment rating from a line of text.
@@ -354,8 +376,89 @@ class Chatbot:
       :param text: a user-supplied line of text
       :returns: a numerical value for the sentiment of the text
       """
-      #print(self.sentiment)
-      return 0
+      neg_words = ["n't", "not", "no", "never"]
+      punctuation = [".", ",", "!", "?", ";"]
+
+      # for creative mode, add intensifiers
+      extra_pos_words = ["loved", "fantastic", "incredible", "amazing", "great", "outstanding", "superb", "brilliant", "terrific"]
+      extra_neg_words = ["awful", "terrible", "bad", "horrible", "disastrous", "hated", "sucked"]
+      intensifiers = ["so", "very", "really", "extremely", "totally", "extra", "absolutely", "completely", "utterly"]
+
+      extra_pos_words = [self.porter_stemmer.stem(s) for s in extra_pos_words]
+      extra_neg_words = [self.porter_stemmer.stem(s) for s in extra_neg_words]
+      intensifiers = [self.porter_stemmer.stem(s) for s in intensifiers]
+
+      found_extra_pos = False
+      found_extra_neg = False
+
+      title = self.extract_titles(text) #remove title so its not included in sentiment
+      if len(title) > 0: text = text.replace(title[0], "")
+
+      tokens = re.findall(r"[\w']+|[.,!?;]", text)
+      words = []
+      for t in tokens:
+        words = words + word_tokenize(t)
+
+      pos_count = 0
+      neg_count = 0
+      i = 0
+      foundIntensifier = False
+      while i < len(words):
+        w = self.porter_stemmer.stem(words[i])
+        # check if really pos or really neg
+        if self.creative:
+          if w in extra_pos_words: found_extra_pos = True
+          if w in extra_neg_words: found_extra_neg = True
+          if w in intensifiers and i != len(words)-1:
+            foundIntensifier = True
+            nextWord = words[i+1]
+            if nextWord in self.sentiment:
+              if self.sentiment[nextWord] == "pos":
+                found_extra_pos = True
+              else:
+                found_extra_neg = True
+        #NORMAL mode starts
+        if w in neg_words and i != len(words)-1: #Take opposite meaning of all words after
+          j = i+1
+          wordToNegate = self.porter_stemmer.stem(words[j])
+          while wordToNegate not in punctuation and j < len(words):
+            if wordToNegate in self.sentiment:
+              if self.sentiment[wordToNegate] == "pos":
+                if self.creative and foundIntensifier: 
+                  found_extra_neg = True
+                  foundIntensifier = False
+                neg_count += 1
+              else:
+                if self.creative and foundIntensifier: 
+                  found_extra_pos = True
+                  foundIntensifier = False
+                pos_count += 1
+            j = j+1
+            if j <= (len(words)-1): wordToNegate = self.porter_stemmer.stem(words[j])
+          i = j #Jump ahead
+
+        else: #find straight sentiment of words
+          if w in self.sentiment:
+            if self.sentiment[w] == "pos":
+              pos_count += 1
+            else:
+              neg_count += 1
+          i = i+1
+
+      if self.creative and (found_extra_neg or found_extra_pos):
+        if found_extra_neg and found_extra_pos:
+          return 0
+        elif found_extra_pos:
+          return 2
+        else:
+          return -2
+
+      if pos_count > neg_count:
+        return 1
+      elif neg_count > pos_count:
+        return -1
+      else:
+        return 0
 
     def extract_sentiment_for_movies(self, text):
       """Creative Feature: Extracts the sentiments from a line of text
@@ -466,8 +569,11 @@ class Chatbot:
             editDistances[editDistance_YearRemoved] = [i]
       
       #Find all movies that are the minimum edit distance away
+<<<<<<< HEAD
 
       print(editDistances)
+=======
+>>>>>>> 1038161a08f307073f1d3f89b53889655a3557c6
       if minEditDistance <= max_distance:
         options = editDistances[minEditDistance]
         for i in options:
