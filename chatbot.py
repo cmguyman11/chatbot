@@ -32,6 +32,7 @@ class Chatbot:
       self.problem = 0
       self.confirmation_list = []
       self.suggested = []
+      self.currentMovies = []
 
       #self.extreme_sentiment = movielens.extract_sentiment()
 
@@ -124,10 +125,11 @@ class Chatbot:
           if re.match('.*"([^"]*)"(.*"([^"]*)")+', line):
             titles = self.extract_sentiment_for_movies(line)
             for i in range(len(titles)): titles[i] = ([titles[i][0]], titles[i][1])
-
+            print("multiple movies")
           #if not multiple movies, simply update
           else:
             titles = [(self.extract_titles(line), self.extract_sentiment(line))]
+            print("one movie")
           
           if titles == []:return "Let's talk more about movies!"
           id_list = []
@@ -311,16 +313,31 @@ class Chatbot:
               alt_title = re.sub('[\(\)]', '', alt_titles[i])
               alt_title = self.process_title_reverse(re.sub('aka ', '', alt_title).lstrip())
 
-              if alt_title in text:
+              if alt_title in text.split():
                 titles.append(movie_date_stripped)
                 matched = True
+                #Original movies is a list of the official names of all movies theyre currently asking about
+                self.currentMovies.append(original_movie)
 
           movie_with_parens = movie_stripped
-          movie_stripped = re.sub(' \(.*\)', '', movie_stripped)
+          movie_stripped = re.sub(' \(.*\)', '', movie_stripped) # remove any extra parenthesis
 
+          # if they entered it in with the date, we want to return the date
+          if original_movie in text and not matched:
+            titles.append(original_movie)
+            self.currentMovies.append(original_movie)
+            matched = True
+          
+          movie_with_date_no_parens = re.sub('\(.[^\d{4}]*.\)', '', original_movie)
+          if movie_with_date_no_parens in text and not matched:
+            titles.append(movie_with_date_no_parens)
+            self.currentMovies.append(original_movie)
+            matched = True
+            
           # # handles case of one movie
           if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text) and not matched:
             titles.append(movie_date_stripped)
+            self.currentMovies.append(original_movie)
 
       # NORMAL MODE
 
@@ -344,6 +361,7 @@ class Chatbot:
       title = " ".join(word_list)
       return title
 
+    # move words in list to start of sentence
     def process_title_reverse(self, title):
       title = title.lower()
       word_list = title.split()
@@ -596,19 +614,11 @@ class Chatbot:
       minEditDistance = math.inf
       for i in range(len(movie_list)):
         movie = self.process_title(movie_list[i][0]).lower()
-        # new_max_distance = 0
-        # if title in movie:
-        #   extra = len(movie) - len(title)
-        #   new_max_distance = extra + max_distance
-        #   print(title)
-        #   print(movie)
-        #   print(new_max_distance)
 
         editDistance = self.edit_distance(movie, title, max_distance)
 
         movie = re.sub("\s\((\d{4})\)", "", movie) # remove date
-        # if re.search(", the\Z", movie) != None: # switch 'the" to beginning of sentence
-        #   movie = "the " + re.sub(", the\Z", "", movie)
+        movie = self.process_title_reverse(movie) # move "the" "an", etc to start
 
         editDistance_YearRemoved = self.edit_distance(movie, title, max_distance)
 
