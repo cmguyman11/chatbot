@@ -297,10 +297,19 @@ class Chatbot:
           matched = False
           # strip movie of case and year
           original_movie = movie_list[i][0].lower() # make lowercase
+          original_movie = self.process_title_reverse(original_movie)
 
-          movie_date_stripped = re.sub(' \(\d{4}\)', '', original_movie)
+          date = re.findall(' \(\d{4}\)', original_movie)
 
-          movie_stripped = re.sub(r'[.,\':]', '', movie_date_stripped)
+          # turn Notebook, The into The Notebook
+          movie_stripped = self.process_title_reverse(re.sub(' \(\d{4}\)', '', original_movie))
+
+          movie_stripped = re.sub(r'[.,\':]', '', movie_stripped)
+
+          movie_with_date = movie_stripped
+          #The Notebook (2007)
+          if len(date) > 0:
+            movie_with_date = movie_stripped + date[0]
 
           alt_titles = re.findall(' \(.[^\)\(]*\)', movie_stripped) # find foreign titles in parenthesis
           
@@ -310,7 +319,7 @@ class Chatbot:
               alt_title = self.process_title_reverse(re.sub('aka ', '', alt_title).lstrip())
 
               if alt_title in text.split():
-                titles.append(movie_date_stripped)
+                titles.append(movie_stripped)
                 matched = True
                 #Original movies is a list of the official names of all movies theyre currently asking about
                 self.currentMovies.append(original_movie)
@@ -319,8 +328,8 @@ class Chatbot:
           movie_stripped = re.sub(' \(.*\)', '', movie_stripped) # remove any extra parenthesis
 
           # if they entered it in with the date, we want to return the date
-          if original_movie in text and not matched:
-            titles.append(original_movie)
+          if movie_with_date in text and not matched:
+            titles.append(movie_with_date)
             self.currentMovies.append(original_movie)
             matched = True
           
@@ -329,10 +338,10 @@ class Chatbot:
             titles.append(movie_with_date_no_parens)
             self.currentMovies.append(original_movie)
             matched = True
-            
+          
           # # handles case of one movie
           if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text) and not matched:
-            titles.append(movie_date_stripped)
+            titles.append(movie_stripped)
             self.currentMovies.append(original_movie)
 
       # NORMAL MODE
@@ -341,7 +350,7 @@ class Chatbot:
       # #pattern regular = '[\"\'].+[\"\']'
       titles = titles + re.findall('"([^"]*)"', text)
 
-      #print("titles: " + str(titles))
+      print("titles: " + str(titles))
       return titles
 
 
