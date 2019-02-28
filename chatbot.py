@@ -64,7 +64,7 @@ class Chatbot:
       # TODO: Write a short greeting message                                      #
       #############################################################################
 
-      greeting_message = "Well hello there! I'm a helpful chatbot ready to suggest a movie to you today. First, tell me about a movie you have seen and whether or not you liked it."
+      greeting_message = "Well hello there! Let's talk about movies! Is there a movie you've enjoyed recently?"
 
       #############################################################################
       #                             END OF YOUR CODE                              #
@@ -77,7 +77,7 @@ class Chatbot:
       # TODO: Write a short farewell message                                      #
       #############################################################################
 
-      goodbye_message = "Thank you! I hope you enjoy your film!"
+      goodbye_message = "Have an awesome day, and I hope you enjoy your film!"
 
       #############################################################################
       #                             END OF YOUR CODE                              #
@@ -129,35 +129,36 @@ class Chatbot:
           else:
             titles = [(self.extract_titles(line), self.extract_sentiment(line))]
           
-          print(titles)
-          if titles == []:return "I'd love to talk more about movies!"
+          if titles == []:return "Let's talk more about movies!"
           id_list = []
 
           #titles = [(["title_a", "title_b", "title_c"] , 1), (["title"], -1), etc.]
           #title = ([title list], sentiment)
-          for title in titles:
-            #i = string "title_a"  
+          for title in titles:   
+            id_list = []
+            #i = string "title_a"
             for i in title[0]:
               #add all possible movies to the list of titles.
               id_list = id_list + self.find_movies_closest_to_title(i)
             id_list = list(set(id_list))
-            if id_list == []: return "I'm sorry, I don't think I quite understood that. Would you tell me about a movie you enjoyed?"
+            if id_list == []: continue
             #if something is ambiguous--either id_list is longer than 1 movie or sentiment is 0, add to problems list
-            if len(id_list) > 1 or (title[1] == 0 and id_list != []): 
+            if len(id_list) > 1 or (title[1] == 0): 
               self.problem += 1
               self.problems_list.append((id_list, title[1]))
             #if not ambigous, add to list of movies to be confirmed.
             elif len(id_list) == 1 and title[1] != 0:
               self.confirmation_list.append((id_list[0], title[1]))      
               self.user_ratings.append((id_list[0], title[1]))
-
+          if id_list == []: return "I'm sorry, I don't think I quite understood that. Would you tell me about a movie you like?"
+        
         return self.complex_response()
        
       ##NORMAL MODE!!
       else:
         titles = self.extract_titles(line)
         if len(titles) > 1:
-          return "Please tell me about only one movie at a time. Go ahead."
+          return "Woah there, let's talk about one movie at a time please!"
 
         sentiment = self.extract_sentiment(line)
 
@@ -167,13 +168,13 @@ class Chatbot:
         # emma
         print("wrong")
         # broken here
-        if titles == []:return "I'm sorry, I don't recognize that movie. Please enter a different title."
+        if titles == []:return "I'm sorry, I don't recognize that movie. Can you tell me about a different one?"
         print("no titles")
         if titles == []:return "I'd love to talk about movies!"
         for i in titles:
 
           id_list = self.find_movies_by_title(i)
-          if id_list == []:return "I'm sorry, I don't recognize that movie. Please enter in a different title."
+          if id_list == []:return "I'm sorry, I don't recognize that movie. Can we talk about a different one?"
             #for simple mode: no disambiguate, just choose first id!
           if len(id_list) > 1:
             return self.ambiguous_entry(id_list)
@@ -187,19 +188,20 @@ class Chatbot:
           for movie in self.user_ratings:
             self.rating_vec[movie[0]] = movie[1]
           suggestions = self.recommend(self.rating_vec, self.ratings)
-          return "I suggest you watch \"{}\" based on your current preferences".format(self.titles[suggestions[0]][0])
+          return "I think you would really love watching \"{}\" based on what you've told me!".format(self.titles[suggestions[0]][0])
 
         if sentiment > 0:
-          return "I see you liked \"{}\". What's another movie you've seen?".format(self.titles[id_list[0]][0])
+          return "I loved \"{}\" too! What's another movie you've seen?".format(self.titles[id_list[0]][0])
         else:
-          return "Okay, so you didn't like \"{}\". What's another movie you've seen recently?".format(self.titles[id_list[0]][0])
+          return "Okay, so you you don't want to watch another movie like \"{}\". Any other movies you've seen recently?".format(self.titles[id_list[0]][0])
 
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
 
     
-    #handle complex problem responses in creative mode
+    #handle complex problem responses in creative mode 
+
     def complex_response(self):
       result = "Let's talk about some movies you've enjoyed!"
       if len(self.user_ratings) >= 5 and len(self.problems_list) == 0:
@@ -212,15 +214,14 @@ class Chatbot:
       if len(self.problems_list) > 0:
         if len(self.problems_list[-1][0]) > 1:
           self.problem = 1
-          print(self.problems_list)
           return self.ambiguous_entry(self.problems_list[-1][0])
         elif self.problems_list[-1][1] == 0:
           self.problem = 2
-          return "I'm not sure whether you enjoyed \"{}\". Could you tell me a bit more about how you felt watching it?".format(self.titles[self.problems_list[-1][0][0]][0])
+          return "I'm not sure how you felt about \"{}\". Could you tell me a bit more about your feeling?".format(self.titles[self.problems_list[-1][0][0]][0])
 
       if len(self.confirmation_list) > 0:
         if self.confirmation_list[-1][1] > 0:
-          result = "Great, I'm glad to hear you enjoyed \"{}\". What's another movie you've seen?".format(self.titles[self.confirmation_list[-1][0]][0])
+          result = "Great, I'm glad to hear you enjoyed \"{}\". What's another movie you've seen recently?".format(self.titles[self.confirmation_list[-1][0]][0])
         else:
           result = "Okay, so you didn't like \"{}\". What's another movie you've seen recently?".format(self.titles[self.confirmation_list[-1][0]][0])
         self.confirmation_list.pop()
@@ -272,6 +273,7 @@ class Chatbot:
       # ex: I liked the notebook.
       # remove punctuation, make all lowercase, iterate through each movie and check if that's a 
       # substring of the sentence
+      print(text)
       titles = []
       if self.creative:
         # strip text
@@ -300,6 +302,7 @@ class Chatbot:
       # else: # just quotations
       # #pattern regular = '[\"\'].+[\"\']'
       titles = titles + re.findall('"([^"]*)"', text)
+      print(titles)
 
       return titles
 
@@ -349,9 +352,8 @@ class Chatbot:
       else:
         title = self.process_title(title)
         id_list = []
-        movie_list = movielens.titles()
-        for i in range(len(movie_list)):
-          movie_with_year = movie_list[i][0].lower()
+        for i in range(len(self.titles)):
+          movie_with_year = self.titles[i][0].lower()
           movie = re.sub(' \(\d{4}\)', '', movie_with_year)
           movie_noalt = re.sub(' \(.*\)', '', movie)
           if title in [movie, movie_with_year, movie_noalt]: 
@@ -476,11 +478,28 @@ class Chatbot:
       :returns: a list of tuples, where the first item in the tuple is a movie title,
         and the second is the sentiment in the text toward that movie
       """
-      final = []
-      titles = re.findall('"([^"]*)"', text)
-      for title in titles:
-        final.append((title, 0))
-      return final
+      pattern = '(.*"([^"]*)".*)(and|but|or|nor|yet)(.*"([^"]*)")'
+      split = re.findall(pattern, text)[0]
+
+      sentiment_one = self.extract_sentiment(split[0])
+      sentiment_two = self.extract_sentiment(split[4])
+      title_one = split[1]
+      title_two = split[4]
+
+      #if sentiment unclear, clarify. 
+      if sentiment_one == 0 and sentiment_two != 0:
+        if split[2] == "but":
+          sentiment_one = -sentiment_two
+        else:
+          sentiment_one = sentiment_two
+      elif sentiment_two == 0 and sentiment_one != 0:
+        if split[2] == "but": 
+          sentiment_two = -sentiment_one
+        else:
+          sentiment_two = sentiment_one
+
+      sentiment = [(title_one, sentiment_one), (title_two, sentiment_two)]
+      return(sentiment)
 
     def edit_distance(self, movie1, movie2, max_distance):
       rows = len(movie1) + 1
@@ -545,8 +564,8 @@ class Chatbot:
         editDistance = self.edit_distance(movie, title, max_distance)
 
         movie = re.sub("\s\((\d{4})\)", "", movie) # remove date
-        if re.search(", the\Z", movie) != None: # switch 'the" to beginning of sentence
-          movie = "the " + re.sub(", the\Z", "", movie)
+        # if re.search(", the\Z", movie) != None: # switch 'the" to beginning of sentence
+        #   movie = "the " + re.sub(", the\Z", "", movie)
 
         editDistance_YearRemoved = self.edit_distance(movie, title, max_distance)
 
@@ -569,11 +588,6 @@ class Chatbot:
             editDistances[editDistance_YearRemoved] = [i]
       
       #Find all movies that are the minimum edit distance away
-<<<<<<< HEAD
-
-      print(editDistances)
-=======
->>>>>>> 1038161a08f307073f1d3f89b53889655a3557c6
       if minEditDistance <= max_distance:
         options = editDistances[minEditDistance]
         for i in options:
@@ -589,7 +603,7 @@ class Chatbot:
           response += ", "
         if i == len(id_list) - 2:
           response += "or "
-      response += "?" 
+      response += "?"
       return response
 
     def disambiguate(self, clarification, candidates):
@@ -614,14 +628,12 @@ class Chatbot:
       fitting = []
       year = ""
       for movie in candidates:
-        title = self.titles[movie][0]
+        title = self.titles[movie][0].lower()
         year = re.findall("\d{4}", title.split()[-1])[0]
-        if (not clarification.isdigit() and clarification in title) or (year in clarification):
+        if ((not clarification.isdigit()) and clarification in title) or (year in clarification):
           fitting.append(movie)
-
       if clarification.isdigit() and int(clarification) < len(candidates):
         fitting.append(candidates[int(clarification) - 1])
-
       return fitting
 
 
@@ -670,18 +682,14 @@ class Chatbot:
       #############################################################################
       # TODO: Compute cosine similarity between the two vectors.
       #############################################################################
-      lenx, leny, lenxy = 0, 0, 0
-      for i in range(len(u)):
-          x = v[i]
-          y = u[i]
-          lenx += x*x
-          leny += y*y
-          lenxy += x*y
-      cosine_sim = lenxy / float(math.sqrt(lenx*leny))
+      denom = float(np.sqrt(np.dot(u,u) * np.dot(v, v))) 
+      cos = 0
+      if denom != 0:
+        cos = (np.dot(u, v)) / denom
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
-      return cosine_sim
+      return cos
 
 
     def recommend(self, user_ratings, ratings_matrix, k=10, creative=False):
@@ -733,7 +741,7 @@ class Chatbot:
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
-      return recommendations
+      return top_recs
 
 
     #############################################################################
