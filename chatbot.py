@@ -125,11 +125,9 @@ class Chatbot:
           if re.match('.*"([^"]*)"(.*"([^"]*)")+', line):
             titles = self.extract_sentiment_for_movies(line)
             for i in range(len(titles)): titles[i] = ([titles[i][0]], titles[i][1])
-            print("multiple movies")
           #if not multiple movies, simply update
           else:
             titles = [(self.extract_titles(line), self.extract_sentiment(line))]
-            print("one movie")
           
           if titles == []:return "Let's talk more about movies!"
           id_list = []
@@ -227,9 +225,13 @@ class Chatbot:
         for movie in self.user_ratings:
           self.rating_vec[movie[0]] = movie[1]
         suggestions = self.recommend(self.rating_vec, self.ratings)
-        drink = self.drink_recommendation(self.titles[suggestion[0]][0])
-        snack = self.snack_recommendation(self.titles[suggestion[0]][0])
-        return "I suggest you watch \"{}\" based on your current preferences. For a bonus, based on your movie recommendation, we'd recommend you pair your viewing with \"{}\" and \"{}\"".format(self.titles[suggestions[0]][0], snack, drink)
+        print(suggestions)
+        #print(str(self.titles[suggestions[0]]))
+        #drink = self.drink_recommendation(self.titles[suggestions[0]])
+        #drink = self.drink_recommendation(self.titles[suggestions[0]])
+        #snack = self.snack_recommendation(self.titles[suggestions[0]][0])
+        return "I suggest you watch \"{}\" based on your current preferences.".format(self.titles[suggestions[0]][0])
+        # return "I suggest you watch \"{}\" based on your current preferences. For a bonus, based on your movie recommendation, we'd recommend you pair your viewing with \"{}\" and \"{}\"".format(self.titles[suggestions[0]][0], snack, drink)
 
       if len(self.problems_list) > 0:
         if len(self.problems_list[-1][0]) > 1:
@@ -289,22 +291,32 @@ class Chatbot:
       :param text: a user-supplied line of text that may contain movie titles
       :returns: list of movie titles that are potentially in the text
       """
+      titles = []
       if self.creative:
         # strip text of case and punctuation
         text = text.lower()
         text = re.sub(r'[,\'!?:]', '', text)
         alt_title_dict = {}
-        titles = []
+
         movie_list = movielens.titles()
         for i in range(len(movie_list)):
           movie_stripped = ""
           matched = False
           # strip movie of case and year
           original_movie = movie_list[i][0].lower() # make lowercase
+          original_movie = self.process_title_reverse(original_movie)
 
-          movie_date_stripped = re.sub(' \(\d{4}\)', '', original_movie)
+          date = re.findall(' \(\d{4}\)', original_movie)
 
-          movie_stripped = re.sub(r'[.,\':]', '', movie_date_stripped)
+          # turn Notebook, The into The Notebook
+          movie_stripped = self.process_title_reverse(re.sub(' \(\d{4}\)', '', original_movie))
+
+          movie_stripped = re.sub(r'[.,\':]', '', movie_stripped)
+
+          movie_with_date = movie_stripped
+          #The Notebook (2007)
+          if len(date) > 0:
+            movie_with_date = movie_stripped + date[0]
 
           alt_titles = re.findall(' \(.[^\)\(]*\)', movie_stripped) # find foreign titles in parenthesis
           
@@ -314,7 +326,7 @@ class Chatbot:
               alt_title = self.process_title_reverse(re.sub('aka ', '', alt_title).lstrip())
 
               if alt_title in text.split():
-                titles.append(movie_date_stripped)
+                titles.append(movie_stripped)
                 matched = True
                 #Original movies is a list of the official names of all movies theyre currently asking about
                 self.currentMovies.append(original_movie)
@@ -323,8 +335,8 @@ class Chatbot:
           movie_stripped = re.sub(' \(.*\)', '', movie_stripped) # remove any extra parenthesis
 
           # if they entered it in with the date, we want to return the date
-          if original_movie in text and not matched:
-            titles.append(original_movie)
+          if movie_with_date in text and not matched:
+            titles.append(movie_with_date)
             self.currentMovies.append(original_movie)
             matched = True
           
@@ -333,19 +345,17 @@ class Chatbot:
             titles.append(movie_with_date_no_parens)
             self.currentMovies.append(original_movie)
             matched = True
-            
+          
           # # handles case of one movie
           if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text) and not matched:
-            titles.append(movie_date_stripped)
+            titles.append(movie_stripped)
             self.currentMovies.append(original_movie)
-
-      # NORMAL MODE
 
       else: # just quotations
       # #pattern regular = '[\"\'].+[\"\']'
         titles = re.findall('"([^"]*)"', text)
 
-      #print("titles: " + str(titles))
+      print("titles: " + str(titles))
       return titles
 
 
@@ -825,9 +835,10 @@ class Chatbot:
 
     def drink_recommendation(self, recommendation):
       # movie recommendation was passed in
-      # find movie in movielens
-      if (movielens[recommendation][1] != null):
-        genres = movielens[recommendation][1]
+      # this is just the movie name
+      # find that movie name in movielens
+      if (movielens.titles(recommendation[1]) != null):
+        genres = movielens.titles(recommendation)[1]
         # get all genres
         genres = genres.split("|")
         # choose one of the genres
@@ -856,7 +867,7 @@ class Chatbot:
     }
 
     def snack_recommendation (self, recommendation):
-      # movie rec passed in
+      # movie rec passed in - the full thing (the two part situation)
       # find movie in movielens
       # find genre
       # map genre to snack
