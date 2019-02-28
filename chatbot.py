@@ -343,7 +343,7 @@ class Chatbot:
 
       else: # just quotations
       # #pattern regular = '[\"\'].+[\"\']'
-        titles = titles + re.findall('"([^"]*)"', text)
+        titles = re.findall('"([^"]*)"', text)
 
       #print("titles: " + str(titles))
       return titles
@@ -539,6 +539,7 @@ class Chatbot:
       :returns: a list of tuples, where the first item in the tuple is a movie title,
         and the second is the sentiment in the text toward that movie
       """
+
       pattern = '(.*"([^"]*)".*)(and|but|or|nor|yet)(.*"([^"]*)")'
       split = re.findall(pattern, text)[0]
 
@@ -560,6 +561,7 @@ class Chatbot:
           sentiment_two = sentiment_one
 
       sentiment = [(title_one, sentiment_one), (title_two, sentiment_two)]
+      print(sentiment)
       return(sentiment)
 
     def edit_distance(self, movie1, movie2, max_distance):
@@ -678,14 +680,21 @@ class Chatbot:
       :param candidates: a list of movie indices
       :returns: a list of indices corresponding to the movies identified by the clarification
       """
+
       fitting = []
       year = ""
       for movie in candidates:
+        alt_titles = []
         title = self.titles[movie][0].lower()
-        year = re.findall("\d{4}", title.split()[-1])[0]
-        if ((not clarification.isdigit()) and clarification in title) or (year in clarification):
+        #year = re.findall("\d{4}", title.split()[-1])[0]
+        alts = re.findall(' \(.[^\)\(]*\)', title) # find foreign titles in parenthesis
+        title = re.sub("\(.*\)",'', title)
+        for i in range(len(alts)):
+              alt_title = re.sub('[\(\)]','', alts[i])
+              alts[i] = self.process_title_reverse(re.sub('aka ', '', alt_title).lstrip())
+        if (clarification in title) or (clarification in alts) or (alts[-1] in clarification):
           fitting.append(movie)
-      if clarification.isdigit() and int(clarification) < len(candidates):
+      if clarification.isdigit() and int(clarification) <= len(candidates):
         fitting.append(candidates[int(clarification) - 1])
       return fitting
 
