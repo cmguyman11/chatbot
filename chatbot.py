@@ -320,22 +320,32 @@ class Chatbot:
       :param text: a user-supplied line of text that may contain movie titles
       :returns: list of movie titles that are potentially in the text
       """
+      titles = []
       if self.creative:
         # strip text of case and punctuation
         text = text.lower()
         text = re.sub(r'[,\'!?:]', '', text)
         alt_title_dict = {}
-        titles = []
+
         movie_list = movielens.titles()
         for i in range(len(movie_list)):
           movie_stripped = ""
           matched = False
           # strip movie of case and year
           original_movie = movie_list[i][0].lower() # make lowercase
+          original_movie = self.process_title_reverse(original_movie)
 
-          movie_date_stripped = re.sub(' \(\d{4}\)', '', original_movie)
+          date = re.findall(' \(\d{4}\)', original_movie)
 
-          movie_stripped = re.sub(r'[.,\':]', '', movie_date_stripped)
+          # turn Notebook, The into The Notebook
+          movie_stripped = self.process_title_reverse(re.sub(' \(\d{4}\)', '', original_movie))
+
+          movie_stripped = re.sub(r'[.,\':]', '', movie_stripped)
+
+          movie_with_date = movie_stripped
+          #The Notebook (2007)
+          if len(date) > 0:
+            movie_with_date = movie_stripped + date[0]
 
           alt_titles = re.findall(' \(.[^\)\(]*\)', movie_stripped) # find foreign titles in parenthesis
           
@@ -345,7 +355,7 @@ class Chatbot:
               alt_title = self.process_title_reverse(re.sub('aka ', '', alt_title).lstrip())
 
               if alt_title in text.split():
-                titles.append(movie_date_stripped)
+                titles.append(movie_stripped)
                 matched = True
                 #Original movies is a list of the official names of all movies theyre currently asking about
                 self.currentMovies.append(original_movie)
@@ -354,8 +364,8 @@ class Chatbot:
           movie_stripped = re.sub(' \(.*\)', '', movie_stripped) # remove any extra parenthesis
 
           # if they entered it in with the date, we want to return the date
-          if original_movie in text and not matched:
-            titles.append(original_movie)
+          if movie_with_date in text and not matched:
+            titles.append(movie_with_date)
             self.currentMovies.append(original_movie)
             matched = True
           
@@ -364,19 +374,17 @@ class Chatbot:
             titles.append(movie_with_date_no_parens)
             self.currentMovies.append(original_movie)
             matched = True
-            
+          
           # # handles case of one movie
           if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text) and not matched:
-            titles.append(movie_date_stripped)
+            titles.append(movie_stripped)
             self.currentMovies.append(original_movie)
-
-      # NORMAL MODE
 
       else: # just quotations
       # #pattern regular = '[\"\'].+[\"\']'
-        titles = titles + re.findall('"([^"]*)"', text)
+        titles = re.findall('"([^"]*)"', text)
 
-      #print("titles: " + str(titles))
+      print("titles: " + str(titles))
       return titles
 
 
@@ -570,6 +578,7 @@ class Chatbot:
       :returns: a list of tuples, where the first item in the tuple is a movie title,
         and the second is the sentiment in the text toward that movie
       """
+
       pattern = '(.*"([^"]*)".*)(and|but|or|nor|yet)(.*"([^"]*)")'
       split = re.findall(pattern, text)[0]
 
@@ -591,6 +600,7 @@ class Chatbot:
           sentiment_two = sentiment_one
 
       sentiment = [(title_one, sentiment_one), (title_two, sentiment_two)]
+      print(sentiment)
       return(sentiment)
 
     def edit_distance(self, movie1, movie2, max_distance):
@@ -709,14 +719,21 @@ class Chatbot:
       :param candidates: a list of movie indices
       :returns: a list of indices corresponding to the movies identified by the clarification
       """
+
       fitting = []
       year = ""
       for movie in candidates:
+        alt_titles = []
         title = self.titles[movie][0].lower()
-        year = re.findall("\d{4}", title.split()[-1])[0]
-        if ((not clarification.isdigit()) and clarification in title) or (year in clarification):
+        #year = re.findall("\d{4}", title.split()[-1])[0]
+        alts = re.findall(' \(.[^\)\(]*\)', title) # find foreign titles in parenthesis
+        title = re.sub("\(.*\)",'', title)
+        for i in range(len(alts)):
+              alt_title = re.sub('[\(\)]','', alts[i])
+              alts[i] = self.process_title_reverse(re.sub('aka ', '', alt_title).lstrip())
+        if (clarification in title) or (clarification in alts) or (alts[-1] in clarification):
           fitting.append(movie)
-      if clarification.isdigit() and int(clarification) < len(candidates):
+      if clarification.isdigit() and int(clarification) <= len(candidates):
         fitting.append(candidates[int(clarification) - 1])
       return fitting
 
