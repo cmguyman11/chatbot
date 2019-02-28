@@ -7,6 +7,7 @@ import sys
 import os
 import re
 import math
+import random
 
 import numpy as np
 from nltk.tokenize import word_tokenize
@@ -84,7 +85,6 @@ class Chatbot:
       #############################################################################
       return goodbye_message
 
-
     ###############################################################################
     # 2. Modules 2 and 3: extraction and transformation                           #
     ###############################################################################
@@ -129,7 +129,6 @@ class Chatbot:
           else:
             titles = [(self.extract_titles(line), self.extract_sentiment(line))]
           
-          print(titles)
           if titles == []:return "I'd love to talk more about movies!"
           id_list = []
 
@@ -156,6 +155,18 @@ class Chatbot:
               self.confirmation_list.append((id_list[0], title[1]))      
               self.user_ratings.append((id_list[0], title[1]))
 
+          # # Creative addition: return a drink and snack suggestion
+          # if len(self.user_ratings) >= 5 and len(self.problems_list) == 0:
+          #   self.rating_vec = np.zeros(len(self.titles))
+          #   for movie in self.user_ratings:
+          #     self.rating_vec[movie[0]] = movie[1]
+          #   suggestions = self.recommend(self.rating_vec, self.ratings)
+          #   response = "Based on your movie recommendation, we'd recommend \"{}\" paired with \"{}\"".format(self.snack_recommendation(self.titles[suggestions[0]][0]), self.drink_recommendation(self.titles[suggestions[0]][0]))
+        
+          #   ## make this be a complex response
+          #   drink = drink_recommendation(suggestions[0][0])
+          #   snack = snack_recommendation(suggestions[0][0])
+
         return self.complex_response()
        
       ##NORMAL MODE!!
@@ -169,7 +180,6 @@ class Chatbot:
         movies = []
         id_list = []
 
-        # broken here
         if titles == []:return "I'm sorry, I don't recognize that movie. Please enter a different title."
         if titles == []:return "I'd love to talk about movies!"
         for i in titles:
@@ -209,7 +219,9 @@ class Chatbot:
         for movie in self.user_ratings:
           self.rating_vec[movie[0]] = movie[1]
         suggestions = self.recommend(self.rating_vec, self.ratings)
-        return "I suggest you watch \"{}\" based on your current preferences".format(self.titles[suggestions[0]][0])
+        drink = self.drink_recommendation(self.titles[suggestion[0]][0])
+        snack = self.snack_recommendation(self.titles[suggestion[0]][0])
+        return "I suggest you watch \"{}\" based on your current preferences. For a bonus, based on your movie recommendation, we'd recommend you pair your viewing with \"{}\" and \"{}\"".format(self.titles[suggestions[0]][0], snack, drink)
 
       if len(self.problems_list) > 0:
         if len(self.problems_list[-1][0]) > 1:
@@ -758,6 +770,72 @@ class Chatbot:
       #                             END OF YOUR CODE                              #
       #############################################################################
       return recommendations
+
+    drinks = {
+    "Comedy": "Riesling, for the levity and dry humor.",
+    "Romance": "Cabernet Sauvignon from Chateau Montelena, a California favorite.",
+    "Drama": "Rosé, duh!",
+    "Documentary": "Craft Beer, to connect with the local.",
+    "Crime": "19 Crimes Cabernet Sauvignon",
+    "Children": "Juice Box, to taste the fun!",
+    "Sci-Fi": "Water, to stay grounded.",
+    "Action": "a case of your favorite IPA.",
+    "Adventure": "to get out there and whip up something in the kitchen yourself!",
+    "Fantasy": "Champagne, for the light and whimsical.",
+    "Horror": "Bloody Mary, to be in theme.",
+    "Thriller": "Bloody Mary, to dull the senses.",
+    "Mystery": "Merlot, to bring out distinguished depth and character.",
+    "Animation": "Soda, for a little pep in your step.",
+    "War": "Whiskey, because we know that's what the actors would be drinking."
+    }
+
+    def drink_recommendation(self, recommendation):
+      # movie recommendation was passed in
+      # find movie in movielens
+      if (movielens[recommendation][1] != null):
+        genres = movielens[recommendation][1]
+        # get all genres
+        genres = genres.split("|")
+        # choose one of the genres
+        genre = random.choice(genres)
+        # map genre to recommendation
+        drink = drinks[genre]
+        # for {genre} movies, we'd recommend {response}
+      return drink
+    
+    snacks = {
+    "Comedy": "Popcorn",
+    "Romance": "Dove Dark Chocolate",
+    "Drama": "drama food",
+    "Documentary": "doc food",
+    "Crime": "crime food",
+    "Children": "child food",
+    "Sci-Fi": "scifi food",
+    "Action": "action food",
+    "Adventure": "adv food",
+    "Fantasy": "fantasy food",
+    "Horror": "horror food",
+    "Thriller": "thriller food",
+    "Mystery": "mystery food",
+    "Animation": "anim food",
+    "War": "war food"
+    }
+
+    def snack_recommendation (self, recommendation):
+      # movie rec passed in
+      # find movie in movielens
+      # find genre
+      # map genre to snack
+      # find movie in movielens
+      if (movielens[recommendation][1] != null):
+        genres = movielens[recommendation][1]
+        # get all genres
+        genres = genres.split("|")
+        # choose one of the genres
+        genre = random.choice(genres)
+        # map genre to recommendation
+        snack = snacks[genre]
+      return snack
 
 
     #############################################################################
