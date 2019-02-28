@@ -143,7 +143,7 @@ class Chatbot:
               id_list = id_list + self.find_movies_by_title(i)
               if id_list == []:
                 id_list = id_list + self.find_movies_closest_to_title(i)
-                
+
               id_list = list(set(id_list))
 
             if id_list == []: return "I'm sorry, I don't think I quite understood that. Would you tell me about a movie you enjoyed?"
@@ -598,11 +598,6 @@ class Chatbot:
             editDistances[editDistance_YearRemoved] = [i]
       
       #Find all movies that are the minimum edit distance away
-<<<<<<< HEAD
-
-      print(editDistances)
-=======
->>>>>>> 1038161a08f307073f1d3f89b53889655a3557c6
       if minEditDistance <= max_distance:
         options = editDistances[minEditDistance]
         for i in options:
