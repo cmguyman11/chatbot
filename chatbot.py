@@ -275,11 +275,10 @@ class Chatbot:
           matched = False
           # strip movie of case and year
           original_movie = movie_list[i][0].lower() # make lowercase
-          if original_movie == "Quest for Fire (Guerre du feu, La) (1981)".lower():
-            print("found")
-          movie_stripped = re.sub(' \(\d{4}\)', '', original_movie)
 
-          movie_stripped = re.sub(r'[.,\':]', '', movie_stripped)
+          movie_date_stripped = re.sub(' \(\d{4}\)', '', original_movie)
+
+          movie_stripped = re.sub(r'[.,\':]', '', movie_date_stripped)
 
           alt_titles = re.findall(' \(.[^\)\(]*\)', movie_stripped) # find foreign titles in parenthesis
           
@@ -287,10 +286,9 @@ class Chatbot:
             for i in range(len(alt_titles)):
               alt_title = re.sub('[\(\)]', '', alt_titles[i])
               alt_title = self.process_title_reverse(re.sub('aka ', '', alt_title).lstrip())
-              if original_movie == "Quest for Fire (Guerre du feu, La) (1981)".lower():
-                print(alt_title)
+
               if alt_title in text:
-                titles.append(original_movie)
+                titles.append(movie_date_stripped)
                 matched = True
 
           movie_with_parens = movie_stripped
@@ -298,7 +296,7 @@ class Chatbot:
 
           # # handles case of one movie
           if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text) and not matched:
-            titles.append(original_movie)
+            titles.append(movie_date_stripped)
 
 
       # NORMAL MODE
@@ -306,6 +304,7 @@ class Chatbot:
       # else: # just quotations
       # #pattern regular = '[\"\'].+[\"\']'
         titles = re.findall('"([^"]*)"', text)
+
       #print("titles: " + str(titles))
       return titles
 
@@ -363,15 +362,6 @@ class Chatbot:
         for i in range(len(movie_list)):
           movie_with_year = movie_list[i][0].lower()
           movie = re.sub(' \(\d{4}\)', '', movie_with_year)
-         #if 'se7en' in movie:
-           # print(movie)
-
-          # Alternative movie case 
-          # if 'a.k.a.' in movie_with_year:
-          #   movies = movie_with_year.split('a.k.a.')
-           # for m in movies:
-              #if title == m: id_list.append(i)
-             # print(m)
 
           # Singular movie case 
           if title == movie or title == movie_with_year: 
