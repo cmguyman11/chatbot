@@ -125,11 +125,9 @@ class Chatbot:
           if re.match('.*"([^"]*)"(.*"([^"]*)")+', line):
             titles = self.extract_sentiment_for_movies(line)
             for i in range(len(titles)): titles[i] = ([titles[i][0]], titles[i][1])
-            print("multiple movies")
           #if not multiple movies, simply update
           else:
             titles = [(self.extract_titles(line), self.extract_sentiment(line))]
-            print("one movie")
           
           if titles == []:return "Let's talk more about movies!"
           id_list = []
@@ -353,11 +351,9 @@ class Chatbot:
             titles.append(movie_stripped)
             self.currentMovies.append(original_movie)
 
-      # NORMAL MODE
 
-      else: # just quotations
-      # #pattern regular = '[\"\'].+[\"\']'
-        titles = titles + re.findall('"([^"]*)"', text)
+      titles = titles + re.findall('"([^"]*)"', text)
+      titles = list(set(titles))
 
       print("titles: " + str(titles))
       return titles
