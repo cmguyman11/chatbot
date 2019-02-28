@@ -127,6 +127,7 @@ class Chatbot:
           else:
             titles = [(self.extract_titles(line), self.extract_sentiment(line))]
           
+          print(titles)
           if titles == []:return "I'd love to talk more about movies!"
           id_list = []
 
@@ -266,7 +267,7 @@ class Chatbot:
         # strip text of case and punctuation
         text = text.lower()
         text = re.sub(r'[,\'!?:]', '', text)
-
+        alt_title_dict = {}
         titles = []
         movie_list = movielens.titles()
         for i in range(len(movie_list)):
@@ -274,20 +275,28 @@ class Chatbot:
 
           # strip movie of case and year
           movie_stripped = movie_list[i][0].lower() # make lowercase
+
           movie_stripped = re.sub(' \(\d{4}\)', '', movie_stripped)
           #movie_stripped = re.sub(r'\s\([0-9]+\)', '', movie_stripped)
-          movie_stripped = re.sub(r'[.(),\':]', '', movie_stripped)
+          movie_stripped = re.sub(r'[.,\':]', '', movie_stripped)
+          #print(movie_stripped)
+          alt_titles = re.findall(' \(.*\)', movie_stripped)
+          if len(alt_titles) > 0:
+            for i in range(len(alt_titles)):
+              alt_title = re.sub('[\(\)]', '', alt_titles[i])
+              alt_title = re.sub('aka ', '', alt_title).lstrip()
+              alt_title_dict[movie_stripped] = alt_title
 
-          # handles foreign/alternate case
-          if 'aka' in movie_stripped:
-            movies = movie_stripped.split(' aka ')
-            for m in movies:
-              if re.search(r"\b" + re.escape(m) + r"\b", text):
-                titles.append(m)
+          movie_with_parens = movie_stripped
+          movie_stripped = re.sub(' \(.*\)', '', movie_stripped)
 
           # handles case of one movie
           if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text):
             titles.append(movie_stripped)
+            if movie_with_parens in alt_title_dict:
+              print("alt title")
+              print(alt_title_dict[movie_with_parens])
+              titles.append(alt_title_dict[movie_with_parens])
 
       # NORMAL MODE
       else:
@@ -339,15 +348,15 @@ class Chatbot:
         for i in range(len(movie_list)):
           movie_with_year = movie_list[i][0].lower()
           movie = re.sub(' \(\d{4}\)', '', movie_with_year)
-          if 'se7en' in movie:
-            print(movie)
+         #if 'se7en' in movie:
+           # print(movie)
 
           # Alternative movie case 
-          if 'a.k.a.' in movie_with_year:
-            movies = movie_with_year.split('a.k.a.')
-            for m in movies:
-              if title == m: id_list.append(i)
-              print(m)
+          # if 'a.k.a.' in movie_with_year:
+          #   movies = movie_with_year.split('a.k.a.')
+           # for m in movies:
+              #if title == m: id_list.append(i)
+             # print(m)
 
           # Singular movie case 
           if title == movie or title == movie_with_year: 
