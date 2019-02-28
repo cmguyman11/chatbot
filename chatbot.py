@@ -275,20 +275,20 @@ class Chatbot:
           matched = False
           # strip movie of case and year
           original_movie = movie_list[i][0].lower() # make lowercase
-
-
+          if original_movie == "Quest for Fire (Guerre du feu, La) (1981)".lower():
+            print("found")
           movie_stripped = re.sub(' \(\d{4}\)', '', original_movie)
-          #movie_stripped = re.sub(r'\s\([0-9]+\)', '', movie_stripped)
+
           movie_stripped = re.sub(r'[.,\':]', '', movie_stripped)
-          #print(movie_stripped)
-          alt_titles = re.findall('\(.[^\)\(]*\)', movie_stripped)
+
+          alt_titles = re.findall(' \(.[^\)\(]*\)', movie_stripped) # find foreign titles in parenthesis
+          
           if len(alt_titles) > 0:
             for i in range(len(alt_titles)):
               alt_title = re.sub('[\(\)]', '', alt_titles[i])
-              alt_title = self.process_title(re.sub('aka ', '', alt_title).lstrip())
-              if "zombi" in original_movie:
-                print(original_movie)
-                print("alt_title " + alt_title)
+              alt_title = self.process_title_reverse(re.sub('aka ', '', alt_title).lstrip())
+              if original_movie == "Quest for Fire (Guerre du feu, La) (1981)".lower():
+                print(alt_title)
               if alt_title in text:
                 titles.append(original_movie)
                 matched = True
@@ -299,10 +299,7 @@ class Chatbot:
           # # handles case of one movie
           if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text) and not matched:
             titles.append(original_movie)
-          #   if movie_with_parens in alt_title_dict:
-          #     print("alt title")
-          #     print(alt_title_dict[movie_with_parens])
-          #     titles.append(alt_title_dict[movie_with_parens])
+
 
       # NORMAL MODE
       else:
@@ -321,6 +318,18 @@ class Chatbot:
         word_list[-1] = word_list[-1] + ','
         word_list.append(word_list[0])
         word_list.pop(0)
+
+      title = " ".join(word_list)
+      return title
+
+    def process_title_reverse(self, title):
+      title = title.lower()
+      word_list = title.split()
+      lastIndex = len(word_list) - 1
+      if (word_list[lastIndex] in ['and', 'the', 'a', 'an', 'le', 'la']):
+        word_list[lastIndex] = re.sub("," , '', word_list[lastIndex])
+        word_list = [word_list[lastIndex]] + word_list
+        word_list.pop(lastIndex + 1)
 
       title = " ".join(word_list)
       return title
