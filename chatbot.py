@@ -125,12 +125,13 @@ class Chatbot:
           if re.match('.*"([^"]*)"(.*"([^"]*)")+', line):
             titles = self.extract_sentiment_for_movies(line)
             for i in range(len(titles)): titles[i] = ([titles[i][0]], titles[i][1])
-
+            print("multiple movies")
           #if not multiple movies, simply update
           else:
             titles = [(self.extract_titles(line), self.extract_sentiment(line))]
+            print("one movie")
           
-          print(titles)
+          #print(titles)
           if titles == []:return "I'd love to talk more about movies!"
           id_list = []
 
@@ -295,7 +296,7 @@ class Chatbot:
               alt_title = re.sub('[\(\)]', '', alt_titles[i])
               alt_title = self.process_title_reverse(re.sub('aka ', '', alt_title).lstrip())
 
-              if alt_title in text:
+              if alt_title in text.split():
                 titles.append(movie_date_stripped)
                 matched = True
                 #Original movies is a list of the official names of all movies theyre currently asking about
