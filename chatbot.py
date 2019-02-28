@@ -7,6 +7,7 @@ import sys
 import os
 import re
 import math
+import random
 
 import numpy as np
 from nltk.tokenize import word_tokenize
@@ -84,7 +85,6 @@ class Chatbot:
       #############################################################################
       return goodbye_message
 
-
     ###############################################################################
     # 2. Modules 2 and 3: extraction and transformation                           #
     ###############################################################################
@@ -139,9 +139,14 @@ class Chatbot:
             #i = string "title_a"
             for i in title[0]:
               #add all possible movies to the list of titles.
-              id_list = id_list + self.find_movies_closest_to_title(i)
-            id_list = list(set(id_list))
-            if id_list == []: continue
+              
+              id_list = id_list + self.find_movies_by_title(i)
+              if id_list == []:
+                id_list = id_list + self.find_movies_closest_to_title(i)
+
+              id_list = list(set(id_list))
+
+            if id_list == []: return "I'm sorry, I don't think I quite understood that. Would you tell me about a movie you enjoyed?"
             #if something is ambiguous--either id_list is longer than 1 movie or sentiment is 0, add to problems list
             if len(id_list) > 1 or (title[1] == 0): 
               self.problem += 1
@@ -151,7 +156,19 @@ class Chatbot:
               self.confirmation_list.append((id_list[0], title[1]))      
               self.user_ratings.append((id_list[0], title[1]))
           if id_list == []: return "I'm sorry, I don't think I quite understood that. Would you tell me about a movie you like?"
+
+
+          # # Creative addition: return a drink and snack suggestion
+          # if len(self.user_ratings) >= 5 and len(self.problems_list) == 0:
+          #   self.rating_vec = np.zeros(len(self.titles))
+          #   for movie in self.user_ratings:
+          #     self.rating_vec[movie[0]] = movie[1]
+          #   suggestions = self.recommend(self.rating_vec, self.ratings)
+          #   response = "Based on your movie recommendation, we'd recommend \"{}\" paired with \"{}\"".format(self.snack_recommendation(self.titles[suggestions[0]][0]), self.drink_recommendation(self.titles[suggestions[0]][0]))
         
+          #   ## make this be a complex response
+          #   drink = drink_recommendation(suggestions[0][0])
+          #   snack = snack_recommendation(suggestions[0][0])
         return self.complex_response()
        
       ##NORMAL MODE!!
@@ -164,7 +181,6 @@ class Chatbot:
 
         movies = []
         id_list = []
-
         # emma
         print("wrong")
         # broken here
@@ -209,7 +225,9 @@ class Chatbot:
         for movie in self.user_ratings:
           self.rating_vec[movie[0]] = movie[1]
         suggestions = self.recommend(self.rating_vec, self.ratings)
-        return "I suggest you watch \"{}\" based on your current preferences".format(self.titles[suggestions[0]][0])
+        drink = self.drink_recommendation(self.titles[suggestion[0]][0])
+        snack = self.snack_recommendation(self.titles[suggestion[0]][0])
+        return "I suggest you watch \"{}\" based on your current preferences. For a bonus, based on your movie recommendation, we'd recommend you pair your viewing with \"{}\" and \"{}\"".format(self.titles[suggestions[0]][0], snack, drink)
 
       if len(self.problems_list) > 0:
         if len(self.problems_list[-1][0]) > 1:
@@ -269,41 +287,48 @@ class Chatbot:
       :param text: a user-supplied line of text that may contain movie titles
       :returns: list of movie titles that are potentially in the text
       """
-      # if creative:
-      # ex: I liked the notebook.
-      # remove punctuation, make all lowercase, iterate through each movie and check if that's a 
-      # substring of the sentence
-      print(text)
-      titles = []
       if self.creative:
-        # strip text
+        # strip text of case and punctuation
         text = text.lower()
         text = re.sub(r'[,\'!?:]', '', text)
-
-        # if self.creative:
+        alt_title_dict = {}
+        titles = []
         movie_list = movielens.titles()
         for i in range(len(movie_list)):
           movie_stripped = ""
+          matched = False
+          # strip movie of case and year
+          original_movie = movie_list[i][0].lower() # make lowercase
 
-          # movie_list[i][0] = movie_list[i][0].lower() # make lowercase
-          # movie_list[i][0] = re.sub(r'\s\([0-9]+\)', '', movie_list[i][0])
-          # movie_list[i][0] = re.sub(r'[,\':]', '', movie_list[i][0])
+          movie_date_stripped = re.sub(' \(\d{4}\)', '', original_movie)
 
-          # movie compare
-          movie_stripped = movie_list[i][0].lower() # make lowercase
-          movie_stripped = re.sub(r'\s\([0-9]+\)', '', movie_stripped)
-          movie_stripped = re.sub(r'[,\':]', '', movie_stripped)
+          movie_stripped = re.sub(r'[.,\':]', '', movie_date_stripped)
 
-          # if that movie appears as a whole word in the text
-          if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text):
-            titles.append(movie_stripped)
+          alt_titles = re.findall(' \(.[^\)\(]*\)', movie_stripped) # find foreign titles in parenthesis
+          
+          if len(alt_titles) > 0:
+            for i in range(len(alt_titles)):
+              alt_title = re.sub('[\(\)]', '', alt_titles[i])
+              alt_title = self.process_title_reverse(re.sub('aka ', '', alt_title).lstrip())
+
+              if alt_title in text:
+                titles.append(movie_date_stripped)
+                matched = True
+
+          movie_with_parens = movie_stripped
+          movie_stripped = re.sub(' \(.*\)', '', movie_stripped)
+
+          # # handles case of one movie
+          if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text) and not matched:
+            titles.append(movie_date_stripped)
+
       # NORMAL MODE
 
-      # else: # just quotations
+      else: # just quotations
       # #pattern regular = '[\"\'].+[\"\']'
-      titles = titles + re.findall('"([^"]*)"', text)
-      print(titles)
+        titles = titles + re.findall('"([^"]*)"', text)
 
+      #print("titles: " + str(titles))
       return titles
 
 
@@ -311,13 +336,26 @@ class Chatbot:
     def process_title(self, title):
       title = title.lower()
       word_list = title.split()
-      if (word_list[0] in ['and', 'the', 'a', 'an']):
+      if (word_list[0] in ['and', 'the', 'a', 'an', 'le', 'la']):
         word_list[-1] = word_list[-1] + ','
         word_list.append(word_list[0])
         word_list.pop(0)
 
       title = " ".join(word_list)
       return title
+
+    def process_title_reverse(self, title):
+      title = title.lower()
+      word_list = title.split()
+      lastIndex = len(word_list) - 1
+      if (word_list[lastIndex] in ['and', 'the', 'a', 'an', 'le', 'la']):
+        word_list[lastIndex] = re.sub("," , '', word_list[lastIndex])
+        word_list = [word_list[lastIndex]] + word_list
+        word_list.pop(lastIndex + 1)
+
+      title = " ".join(word_list)
+      return title
+
 
     def find_movies_by_title(self, title):
       """ Given a movie title, return a list of indices of matching movies.
@@ -339,16 +377,21 @@ class Chatbot:
         # handles incorrect capitalization already
         # todo: handle alternate/foreign titles
         # if it's a substring of the entire movie 
+        # extraction also extracts the proper movie
+
         title = self.process_title(title)
         id_list = []
         movie_list = movielens.titles()
         for i in range(len(movie_list)):
           movie_with_year = movie_list[i][0].lower()
           movie = re.sub(' \(\d{4}\)', '', movie_with_year)
+
+          # Singular movie case 
           if title == movie or title == movie_with_year: 
             id_list.append(i)
 
 
+      # NORMAL MODE
       else:
         title = self.process_title(title)
         id_list = []
@@ -742,6 +785,72 @@ class Chatbot:
       #                             END OF YOUR CODE                              #
       #############################################################################
       return top_recs
+
+    drinks = {
+    "Comedy": "Riesling, for the levity and dry humor.",
+    "Romance": "Cabernet Sauvignon from Chateau Montelena, a California favorite.",
+    "Drama": "Rosé, duh!",
+    "Documentary": "Craft Beer, to connect with the local.",
+    "Crime": "19 Crimes Cabernet Sauvignon",
+    "Children": "Juice Box, to taste the fun!",
+    "Sci-Fi": "Water, to stay grounded.",
+    "Action": "a case of your favorite IPA.",
+    "Adventure": "to get out there and whip up something in the kitchen yourself!",
+    "Fantasy": "Champagne, for the light and whimsical.",
+    "Horror": "Bloody Mary, to be in theme.",
+    "Thriller": "Bloody Mary, to dull the senses.",
+    "Mystery": "Merlot, to bring out distinguished depth and character.",
+    "Animation": "Soda, for a little pep in your step.",
+    "War": "Whiskey, because we know that's what the actors would be drinking."
+    }
+
+    def drink_recommendation(self, recommendation):
+      # movie recommendation was passed in
+      # find movie in movielens
+      if (movielens[recommendation][1] != null):
+        genres = movielens[recommendation][1]
+        # get all genres
+        genres = genres.split("|")
+        # choose one of the genres
+        genre = random.choice(genres)
+        # map genre to recommendation
+        drink = drinks[genre]
+        # for {genre} movies, we'd recommend {response}
+      return drink
+    
+    snacks = {
+    "Comedy": "Popcorn",
+    "Romance": "Dove Dark Chocolate",
+    "Drama": "drama food",
+    "Documentary": "doc food",
+    "Crime": "crime food",
+    "Children": "child food",
+    "Sci-Fi": "scifi food",
+    "Action": "action food",
+    "Adventure": "adv food",
+    "Fantasy": "fantasy food",
+    "Horror": "horror food",
+    "Thriller": "thriller food",
+    "Mystery": "mystery food",
+    "Animation": "anim food",
+    "War": "war food"
+    }
+
+    def snack_recommendation (self, recommendation):
+      # movie rec passed in
+      # find movie in movielens
+      # find genre
+      # map genre to snack
+      # find movie in movielens
+      if (movielens[recommendation][1] != null):
+        genres = movielens[recommendation][1]
+        # get all genres
+        genres = genres.split("|")
+        # choose one of the genres
+        genre = random.choice(genres)
+        # map genre to recommendation
+        snack = snacks[genre]
+      return snack
 
 
     #############################################################################
