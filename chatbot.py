@@ -219,9 +219,13 @@ class Chatbot:
         for movie in self.user_ratings:
           self.rating_vec[movie[0]] = movie[1]
         suggestions = self.recommend(self.rating_vec, self.ratings)
-        drink = self.drink_recommendation(self.titles[suggestion[0]][0])
-        snack = self.snack_recommendation(self.titles[suggestion[0]][0])
-        return "I suggest you watch \"{}\" based on your current preferences. For a bonus, based on your movie recommendation, we'd recommend you pair your viewing with \"{}\" and \"{}\"".format(self.titles[suggestions[0]][0], snack, drink)
+        print(suggestions)
+        #print(str(self.titles[suggestions[0]]))
+        #drink = self.drink_recommendation(self.titles[suggestions[0]])
+        #drink = self.drink_recommendation(self.titles[suggestions[0]])
+        #snack = self.snack_recommendation(self.titles[suggestions[0]][0])
+        return "I suggest you watch \"{}\" based on your current preferences.".format(self.titles[suggestions[0]][0])
+        # return "I suggest you watch \"{}\" based on your current preferences. For a bonus, based on your movie recommendation, we'd recommend you pair your viewing with \"{}\" and \"{}\"".format(self.titles[suggestions[0]][0], snack, drink)
 
       if len(self.problems_list) > 0:
         if len(self.problems_list[-1][0]) > 1:
@@ -791,9 +795,10 @@ class Chatbot:
 
     def drink_recommendation(self, recommendation):
       # movie recommendation was passed in
-      # find movie in movielens
-      if (movielens[recommendation][1] != null):
-        genres = movielens[recommendation][1]
+      # this is just the movie name
+      # find that movie name in movielens
+      if (movielens.titles(recommendation[1]) != null):
+        genres = movielens.titles(recommendation)[1]
         # get all genres
         genres = genres.split("|")
         # choose one of the genres
@@ -822,7 +827,7 @@ class Chatbot:
     }
 
     def snack_recommendation (self, recommendation):
-      # movie rec passed in
+      # movie rec passed in - the full thing (the two part situation)
       # find movie in movielens
       # find genre
       # map genre to snack
