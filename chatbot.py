@@ -272,25 +272,8 @@ class Chatbot:
       self.problem = 0
       return 
     
-    def extract_titles(self, text):
-      """Extract potential movie titles from a line of text.
-
-      Given an input text, this method should return a list of movie titles
-      that are potentially in the text.
-
-      - If there are no movie titles in the text, return an empty list.
-      - If there is exactly one movie title in the text, return a list
-      containing just that one movie title.
-      - If there are multiple movie titles in the text, return a list
-      of all movie titles you've extracted from the text.
-
-      Example:
-        potential_titles = chatbot.extract_titles('I liked "The Notebook" a lot.')
-        print(potential_titles) // prints ["The Notebook"]
-      
-      :param text: a user-supplied line of text that may contain movie titles
-      :returns: list of movie titles that are potentially in the text
-      """
+    def find_movies_helper(self, text):
+      id_list = []
       titles = []
       if self.creative:
         # strip text of case and punctuation
@@ -329,7 +312,7 @@ class Chatbot:
                 titles.append(movie_stripped)
                 matched = True
                 #Original movies is a list of the official names of all movies theyre currently asking about
-                self.currentMovies.append(original_movie)
+                id_list.append(i)
 
           movie_with_parens = movie_stripped
           movie_stripped = re.sub(' \(.*\)', '', movie_stripped) # remove any extra parenthesis
@@ -337,25 +320,47 @@ class Chatbot:
           # if they entered it in with the date, we want to return the date
           if movie_with_date in text and not matched:
             titles.append(movie_with_date)
-            self.currentMovies.append(original_movie)
+            id_list.append(i)
             matched = True
           
           movie_with_date_no_parens = re.sub('\(.[^\d{4}]*.\)', '', original_movie)
           if movie_with_date_no_parens in text and not matched:
             titles.append(movie_with_date_no_parens)
-            self.currentMovies.append(original_movie)
+            id_list.append(i)
             matched = True
           
           # # handles case of one movie
           if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text) and not matched:
             titles.append(movie_stripped)
-            self.currentMovies.append(original_movie)
+            id_list.append(i)
 
 
       titles = titles + re.findall('"([^"]*)"', text)
       titles = list(set(titles))
+      return [id_list, titles]
 
-      print("titles: " + str(titles))
+
+    def extract_titles(self, text):
+      """Extract potential movie titles from a line of text.
+
+      Given an input text, this method should return a list of movie titles
+      that are potentially in the text.
+
+      - If there are no movie titles in the text, return an empty list.
+      - If there is exactly one movie title in the text, return a list
+      containing just that one movie title.
+      - If there are multiple movie titles in the text, return a list
+      of all movie titles you've extracted from the text.
+
+      Example:
+        potential_titles = chatbot.extract_titles('I liked "The Notebook" a lot.')
+        print(potential_titles) // prints ["The Notebook"]
+      
+      :param text: a user-supplied line of text that may contain movie titles
+      :returns: list of movie titles that are potentially in the text
+      """
+      [id_list, titles] = self.find_movies_helper(text)
+
       return titles
 
 
@@ -401,36 +406,34 @@ class Chatbot:
       :param title: a string containing a movie title
       :returns: a list of indices of matching movies
       """
+      id_list = []
+      found = True
       if self.creative:
-        # handles incorrect capitalization already
-        # todo: handle alternate/foreign titles
-        # if it's a substring of the entire movie 
-        # extraction also extracts the proper movie
-
-        title = self.process_title(title)
-        id_list = []
-        movie_list = movielens.titles()
-        for i in range(len(movie_list)):
-          movie_with_year = movie_list[i][0].lower()
-          movie = re.sub(' \(\d{4}\)', '', movie_with_year)
-
-          # Singular movie case 
-          if title == movie or title == movie_with_year: 
-            id_list.append(i)
-
+        print("title: " + title)
+        [id_list, titles] = self.find_movies_helper(title)
+        print("titles: " + str(titles))
+        print("id_list before: " + str(id_list))
+        if len(id_list) == 0:
+          found = False
 
       # NORMAL MODE
-      else:
-        title = self.process_title(title)
-        id_list = []
-        for i in range(len(self.titles)):
-          movie_with_year = self.titles[i][0].lower()
-          movie = re.sub(' \(\d{4}\)', '', movie_with_year)
-          movie_noalt = re.sub(' \(.*\)', '', movie)
-          if title in [movie, movie_with_year, movie_noalt]: 
-            id_list.append(i)
+  
+      title = self.process_title(title)
+      for i in range(len(self.titles)):
+        movie_with_year = self.titles[i][0].lower()
+        movie = re.sub(' \(\d{4}\)', '', movie_with_year)
+        movie_noalt = re.sub(' \(.*\)', '', movie)
+        if title in [movie, movie_with_year, movie_noalt] and not self.creative:
+          id_list.append(i)
+        if self.creative and title in movie and not found:
+          print(i)
+          print(movie)
+          id_list.append(i)
             
+      id_list = list(set(id_list))
+      print("id_list after: " + str(id_list))
       return id_list
+
 
     def extract_sentiment(self, text):
       """Extract a sentiment rating from a line of text.
@@ -592,9 +595,7 @@ class Chatbot:
           insertion = 1 + grid[row][col-1]
           sub = cost + grid[row-1][col-1]
           grid[row][col] = min(deletion, insertion, sub)
-          # if grid[row][col] > max_distance:
-          #   return -1
-      #print(grid)
+
       return grid[row][col]
 
     def find_movies_closest_to_title(self, title, max_distance=3):
