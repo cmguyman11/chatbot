@@ -350,11 +350,11 @@ class Chatbot:
               alt_title = re.sub('[\(\)]', '', alt_titles[i])
               alt_title = self.process_title_reverse(re.sub('aka ', '', alt_title).lstrip())
 
-              if alt_title in text.split():
+              if alt_title in text.split() or set(alt_title.split()).issubset(text.split()):
                 titles.append(movie_stripped)
                 matched = True
                 #Original movies is a list of the official names of all movies theyre currently asking about
-                id_list.append(i)
+                id_list.append(j)
 
           movie_with_parens = movie_stripped
           movie_stripped = re.sub(' \(.*\)', '', movie_stripped) # remove any extra parenthesis
@@ -362,19 +362,20 @@ class Chatbot:
           # if they entered it in with the date, we want to return the date
           if movie_with_date in text and not matched:
             titles.append(movie_with_date)
-            id_list.append(i)
+            id_list.append(j)
             matched = True
           
           movie_with_date_no_parens = re.sub('\(.[^\d{4}]*.\)', '', original_movie)
           if movie_with_date_no_parens in text and not matched:
             titles.append(movie_with_date_no_parens)
-            id_list.append(i)
+            id_list.append(j)
             matched = True
 
           # # handles case of one movie 'toy story' "i like toy story"
           if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text) and not matched:
             titles.append(movie_stripped)
             id_list.append(j)
+        
 
       titles = titles + re.findall('"([^"]*)"', text)
       titles = list(set(titles))
