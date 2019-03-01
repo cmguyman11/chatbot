@@ -363,11 +363,16 @@ class Chatbot:
     def process_title(self, title):
       title = title.lower()
       word_list = title.split()
-      if (word_list[0] in ['and', 'the', 'a', 'an', 'le', 'la']):
+      if (word_list[0] in ['and', 'the', 'a', 'an', 'le', 'la']):  
+        year = ''
+        if re.match('\(\d{4}\)', word_list[-1]) is not None:
+          year = word_list[-1]
+          word_list.pop(-1)
         word_list[-1] = word_list[-1] + ','
         word_list.append(word_list[0])
         word_list.pop(0)
-
+        if year:
+          word_list.append(year)
       title = " ".join(word_list)
       return title
 
@@ -417,7 +422,6 @@ class Chatbot:
           # Singular movie case 
           if title == movie or title == movie_with_year: 
             id_list.append(i)
-
 
       # NORMAL MODE
       else:
