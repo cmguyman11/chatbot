@@ -63,6 +63,7 @@ class Chatbot:
         "Sci-Fi": "Water, to stay grounded.",
         "Action": "a case of your favorite IPA.",
         "Adventure": "to get out there and whip up something in the kitchen yourself!",
+        "IMAX": "to get out there and whip up something in the kitchen yourself!",
         "Fantasy": "Champagne, for the light and whimsical.",
         "Horror": "Bloody Mary, to be in theme.",
         "Thriller": "Bloody Mary, to dull the senses.",
@@ -89,11 +90,12 @@ class Chatbot:
         "War": "no food"
       }
 
-      self.starters = ["Great!", "Okay,", "Interesting...", "This is great information to know."]
+      self.starters = ["Great!", "Okay,", "Interesting...", "This is great information to know.", "", "Sounds good!", "This is really useful information, thanks for sharing it with me!", "No way! I just watched that movie last weekend."]
       self.reactions = ["an awesome script", "such beautiful cinematography", "powerful emotional scenes", "such a striking visual display", "a beautiful score", "some of the worst extras I have ever seen", "really great costume design"]
       self.positive_words = ["enjoyed", "loved", "quite liked", "want to see more movies like", "appreciated", "adored", "might enjoy a movie similar to", "liked"]
-      self.negative_words = ["disliked", "didn't enjoy", "were not a fan of", "didn't really vibe with", "don't want to watch another movie like", "would rather avoid anything similar to"]
-    
+      self.negative_words = ["disliked", "didn't enjoy", "were not a fan of", "didn't really vibe with", "don't want to watch another movie like", "want to avoid anything similar to"]
+      self.check_sentiment = ["I'm not sure whether or not you enjoyed ", "I couldn't make out whether you liked ", "I'm sorry, but I couldn't make out whether you enjoyed ", "This is such helpful information. I didn't quite catch how you felt about "]
+      self.check_sentiment_clarify = ["Could you tell me a bit more about how you felt watching it?", "Why don't you tell me about some of your reactions to the movie?", "I remember really enjoying that movie--can you tell me about a few things you liked or didn't like about this movie?", "Could you elaborate on your experience watching it?"]
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
@@ -108,7 +110,7 @@ class Chatbot:
       # TODO: Write a short greeting message                                      #
       #############################################################################
 
-      greeting_message = "Well hello there! Let's talk about movies! Is there a movie you absolutely love and want to talk about?"
+      greeting_message = "Well hello there! I am Lit, your helpful chat bot. Let's talk about movies! Is there a movie you absolutely love and want to talk about?"
 
       #############################################################################
       #                             END OF YOUR CODE                              #
@@ -121,7 +123,7 @@ class Chatbot:
       # TODO: Write a short farewell message                                      #
       #############################################################################
 
-      goodbye_message = "Have a spectacular day!! If you have a movie screening later, don't forget your accompanying food and drink!"
+      goodbye_message = "Enjoy your movie, wine, and snacks! Goodbye!"
 
       #############################################################################
       #                             END OF YOUR CODE                              #
@@ -261,10 +263,16 @@ class Chatbot:
         self.rating_vec = np.zeros(len(self.titles))
         for movie in self.user_ratings:
           self.rating_vec[movie[0]] = movie[1]
-        suggestions = self.recommend(self.rating_vec, self.ratings)
-        drink = self.drink_recommendation(self.titles[suggestions[0]])
-        snack = self.snack_recommendation(self.titles[suggestions[0]])
-        return "I suggest you watch \"{}\" based on your taste in films. For a bonus, based on your movie recommendation, we'd recommend you pair your viewing with {} and {}".format(self.titles[suggestions[0]][0], snack, drink)
+        suggestions = self.recommend(self.rating_vec, self.ratings, 10)
+        suggestion = suggestions[0]
+        for i in suggestions:
+          if i not in self.suggested: 
+            suggestion = i
+            self.suggested.append(suggestion)
+            break
+        drink = self.drink_recommendation(self.titles[suggestion])
+        snack = self.snack_recommendation(self.titles[suggestion])
+        return "I suggest you watch \"{}\" based on your taste in films. For a bonus, based on your movie recommendation, I'd recommend you pair your viewing with {} and {}".format(self.titles[suggestions[0]][0], snack, drink)
 
       if len(self.problems_list) > 0:
         if len(self.problems_list[-1][0]) > 1:
@@ -272,7 +280,7 @@ class Chatbot:
           return self.ambiguous_entry(self.problems_list[-1][0])
         elif self.problems_list[-1][1] == 0:
           self.problem = 2
-          return "I'm not sure how you felt about \"{}\". Could you tell me a bit more about your feelings watching it?".format(self.titles[self.problems_list[-1][0][0]][0])
+          return "{}\"{}\". {}".format(random.choice(self.check_sentiment), self.titles[self.problems_list[-1][0][0]][0], random.choice((self.check_sentiment_clarify)))
 
       if len(self.confirmation_list) > 0:
         result = random.choice(self.starters) + " I see that you"
@@ -395,7 +403,7 @@ class Chatbot:
       # #pattern regular = '[\"\'].+[\"\']'
         titles = re.findall('"([^"]*)"', text)
 
-      print("titles: " + str(titles))
+      #print("titles: " + str(titles))
       return titles
 
 
@@ -615,7 +623,7 @@ class Chatbot:
           sentiment_two = sentiment_one
 
       sentiment = [(title_one, sentiment_one), (title_two, sentiment_two)]
-      print(sentiment)
+      #print(sentiment)
       return(sentiment)
 
     def edit_distance(self, movie1, movie2, max_distance):
@@ -871,7 +879,9 @@ class Chatbot:
         # choose one of the genres
         genre = random.choice(genres)
         # map genre to recommendation
-        drink = self.drinks[genre]
+        drink = "a tasty Coca Cola."
+        if genre in self.drinks.keys():
+          drink = self.drinks[genre]
         # for {genre} movies, we'd recommend {response}
       return drink
 
@@ -883,12 +893,14 @@ class Chatbot:
       # find movie in movielens
       if (recommendation[1] != ""):
         genres = recommendation[1]
-        # get all genres
+        # get all 
         genres = genres.split("|")
         # choose one of the genres
         genre = random.choice(genres)
         # map genre to recommendation
-        snack = self.snacks[genre]
+        snack = "hot, buttery popcorn."
+        if genre in self.snacks.keys():
+          snack = self.snacks[genre]
         # for {genre} movies, we'd recommend {response}
       return snack
 
