@@ -88,6 +88,12 @@ class Chatbot:
         "Animation": "cookies decorated with frosting",
         "War": "no food"
       }
+
+      self.starters = ["Great!", "Okay,", "Interesting...", "This is great information to know."]
+      self.reactions = ["an awesome script", "such beautiful cinematography", "powerful emotional scenes", "such a striking visual display", "a beautiful score", "some of the worst extras I have ever seen", "really great costume design"]
+      self.positive_words = ["enjoyed", "loved", "quite liked", "want to see more movies like", "appreciated", "adored", "might enjoy a movie similar to", "liked"]
+      self.negative_words = ["disliked", "didn't enjoy", "were not a fan of", "didn't really vibe with", "don't want to watch another movie like", "would rather avoid anything similar to"]
+    
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
@@ -102,7 +108,7 @@ class Chatbot:
       # TODO: Write a short greeting message                                      #
       #############################################################################
 
-      greeting_message = "Well hello there! Let's talk about movies! Is there a movie you've enjoyed recently?"
+      greeting_message = "Well hello there! Let's talk about movies! Is there a movie you absolutely love and want to talk about?"
 
       #############################################################################
       #                             END OF YOUR CODE                              #
@@ -115,7 +121,7 @@ class Chatbot:
       # TODO: Write a short farewell message                                      #
       #############################################################################
 
-      goodbye_message = "Have an awesome day, and I hope you enjoy your film!"
+      goodbye_message = "Have a spectacular day!! If you have a movie screening later, don't forget your accompanying food and drink!"
 
       #############################################################################
       #                             END OF YOUR CODE                              #
@@ -218,7 +224,6 @@ class Chatbot:
         movies = []
         id_list = []
  
-        if titles == []:return "I'm sorry, I don't recognize that movie. Can you tell me about a different one?"
         if titles == []:return "I'd love to talk about movies!"
         for i in titles:
 
@@ -250,7 +255,6 @@ class Chatbot:
 
     
     #handle complex problem responses in creative mode 
-
     def complex_response(self):
       result = "Let's talk about some movies you've enjoyed!"
       if len(self.user_ratings) >= 5 and len(self.problems_list) == 0:
@@ -260,7 +264,7 @@ class Chatbot:
         suggestions = self.recommend(self.rating_vec, self.ratings)
         drink = self.drink_recommendation(self.titles[suggestions[0]])
         snack = self.snack_recommendation(self.titles[suggestions[0]])
-        return "I suggest you watch \"{}\" based on your current preferences. For a bonus, based on your movie recommendation, we'd recommend you pair your viewing with {} and {}".format(self.titles[suggestions[0]][0], snack, drink)
+        return "I suggest you watch \"{}\" based on your taste in films. For a bonus, based on your movie recommendation, we'd recommend you pair your viewing with {} and {}".format(self.titles[suggestions[0]][0], snack, drink)
 
       if len(self.problems_list) > 0:
         if len(self.problems_list[-1][0]) > 1:
@@ -268,14 +272,21 @@ class Chatbot:
           return self.ambiguous_entry(self.problems_list[-1][0])
         elif self.problems_list[-1][1] == 0:
           self.problem = 2
-          return "I'm not sure how you felt about \"{}\". Could you tell me a bit more about your feeling?".format(self.titles[self.problems_list[-1][0][0]][0])
+          return "I'm not sure how you felt about \"{}\". Could you tell me a bit more about your feelings watching it?".format(self.titles[self.problems_list[-1][0][0]][0])
 
       if len(self.confirmation_list) > 0:
-        if self.confirmation_list[-1][1] > 0:
-          result = "Great, I'm glad to hear you enjoyed \"{}\". What's another movie you've seen recently?".format(self.titles[self.confirmation_list[-1][0]][0])
-        else:
-          result = "Okay, so you didn't like \"{}\". What's another movie you've seen recently?".format(self.titles[self.confirmation_list[-1][0]][0])
-        self.confirmation_list.pop()
+        result = random.choice(self.starters) + " I see that you"
+        for i in range(len(self.confirmation_list)):
+          if self.confirmation_list[i][1] > 0:
+            result += " {} \"{}\"".format(random.choice(self.positive_words), self.titles[self.confirmation_list[i][0]][0])
+          else:
+            result += " {} \"{}\"".format(random.choice(self.negative_words), self.titles[self.confirmation_list[i][0]][0])
+          if i < len(self.confirmation_list) - 1:
+            result += ","
+          if i == len(self.confirmation_list) -2:
+            result += " and"
+        result += ". What are some other movies you've enjoyed recently?"
+        self.confirmation_list = []
       return result
   
     #deal with follow-up conversation in creative mode
