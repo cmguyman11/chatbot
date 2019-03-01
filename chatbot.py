@@ -32,7 +32,8 @@ class Chatbot:
       self.problem = 0
       self.confirmation_list = []
       self.suggested = []
-      self.currentMovies = []
+      self.spellCheckGuessID = -1
+      self.spellCheckGuess = None
 
       #self.extreme_sentiment = movielens.extract_sentiment()
 
@@ -158,20 +159,39 @@ class Chatbot:
       #############################################################################
       if self.creative:
         #if there's a current problem to be addressed, return the required text and update global vars.
+        spellCheck = False
         titles = []
         response = ""
         if self.problem: 
           self.handle_problem(line)
         #if multiple movies in one line, extract sentiment [("the notebook", 1), ("Titanic", -1)]
         else:
-          if re.match('.*"([^"]*)"(.*"([^"]*)")+', line):
+          if self.spellCheckGuessID != -1:
+            spellCheck = True
+            if line == 'yes' or line == "Yes" or line == "yep" or line == "Yep":
+              if self.spellCheckGuess[1] == 0: 
+                self.problem += 1
+                self.problems_list.append(([self.spellCheckGuessID], self.spellCheckGuess[1]))
+            #if not ambigous, add to list of movies to be confirmed.
+              elif self.spellCheckGuess[1] != 0:
+                self.confirmation_list.append((self.spellCheckGuessID, self.spellCheckGuess[1]))      
+                self.user_ratings.append((self.spellCheckGuessID, self.spellCheckGuess[1])) 
+              self.spellCheckGuess = None
+              self.spellCheckGuessID = -1
+            elif line == 'no' or line == 'No':
+              self.spellCheckGuess = None
+              self.spellCheckGuessID = -1
+              return "I'm sorry I couldn't find that movie, could you please retype it?"
+            else:
+              return "Oops I didn't quite get that- can you type \'yes\' or \'no\'?"
+          elif re.match('.*"([^"]*)"(.*"([^"]*)")+', line):
             titles = self.extract_sentiment_for_movies(line)
             for i in range(len(titles)): titles[i] = ([titles[i][0]], titles[i][1])
           #if not multiple movies, simply update
           else:
             titles = [(self.extract_titles(line), self.extract_sentiment(line))]
           
-          if titles == []:return "Let's talk more about movies!"
+          if titles == [] and not spellCheck:return "Let's talk more about movies!"
           id_list = []
 
           #titles = [(["title_a", "title_b", "title_c"] , 1), (["title"], -1), etc.]
@@ -185,10 +205,16 @@ class Chatbot:
               id_list = id_list + self.find_movies_by_title(i)
               if id_list == []:
                 id_list = id_list + self.find_movies_closest_to_title(i)
+                if id_list != []:
+                  rec_id = id_list[0]
+                  rec = movielens.titles()[rec_id][0]
+                  self.spellCheckGuessID = rec_id
+                  self.spellCheckGuess = title
+                  return "Did you mean \'" + rec + "\' ?"
 
               id_list = list(set(id_list))
 
-            if id_list == []: return "I'm sorry, I don't think I quite understood that. Would you tell me about a movie you enjoyed?"
+            if id_list == [] and not spellCheck: return "I'm sorry, I don't think I quite understood that. Would you tell me about a movie you enjoyed?"
             #if something is ambiguous--either id_list is longer than 1 movie or sentiment is 0, add to problems list
             if len(id_list) > 1 or (title[1] == 0): 
               self.problem += 1
@@ -197,7 +223,7 @@ class Chatbot:
             elif len(id_list) == 1 and title[1] != 0:
               self.confirmation_list.append((id_list[0], title[1]))      
               self.user_ratings.append((id_list[0], title[1]))
-          if id_list == []: return "I'm sorry, I don't think I quite understood that. Would you tell me about a movie you like?"
+          if id_list == [] and not spellCheck: return "I'm sorry, I don't think I quite understood that. Would you tell me about a movie you like?"
 
 
           # # Creative addition: return a drink and snack suggestion
@@ -277,6 +303,7 @@ class Chatbot:
       if len(self.confirmation_list) > 0:
         result = random.choice(self.starters) + " I see that you"
         for i in range(len(self.confirmation_list)):
+          print(self.confirmation_list[i][1])
           if self.confirmation_list[i][1] > 0:
             result += " {} \"{}\"".format(random.choice(self.positive_words), self.titles[self.confirmation_list[i][0]][0])
           else:
@@ -661,7 +688,6 @@ class Chatbot:
       :param max_distance: the maximum edit distance to search for
       :returns: a list of movie indices with titles closest to the given title and within edit distance max_distance
       """
-
       id_list = []
       movie_list = movielens.titles()
       editDistances = {}
