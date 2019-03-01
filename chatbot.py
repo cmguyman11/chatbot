@@ -96,6 +96,7 @@ class Chatbot:
       self.negative_words = ["disliked", "didn't enjoy", "were not a fan of", "didn't really vibe with", "don't want to watch another movie like", "want to avoid anything similar to"]
       self.check_sentiment = ["I'm not sure whether or not you enjoyed ", "I couldn't make out whether you liked ", "I'm sorry, but I couldn't make out whether you enjoyed ", "This is such helpful information. I didn't quite catch how you felt about "]
       self.check_sentiment_clarify = ["Could you tell me a bit more about how you felt watching it?", "Why don't you tell me about some of your reactions to the movie?", "I remember really enjoying that movie--can you tell me about a few things you liked or didn't like about this movie?", "Could you elaborate on your experience watching it?"]
+      self.suggestion_lead = ["I suggest you watch", "I think that you would love", "I sense that you would really vibe with", "Okay, I think that you would really enjoy", "I bet that you would appreciate"]
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
@@ -173,7 +174,7 @@ class Chatbot:
           else:
             titles = [(self.extract_titles(line), self.extract_sentiment(line))]
           
-          if titles == []:return "Let's talk more about movies!"
+          if titles == []:return "Let's talk about movies!"
           id_list = []
 
           #titles = [(["title_a", "title_b", "title_c"] , 1), (["title"], -1), etc.]
@@ -244,7 +245,7 @@ class Chatbot:
           for movie in self.user_ratings:
             self.rating_vec[movie[0]] = movie[1]
           suggestions = self.recommend(self.rating_vec, self.ratings)
-          return "I think you would really love watching \"{}\" based on what you've told me!".format(self.titles[suggestions[0]][0])
+          return "{I think you would really love watching} \"{}\" based on what you've told me!".format(self.titles[suggestions[0]][0])
 
         if sentiment > 0:
           return "I loved \"{}\" too! What's another movie you've seen?".format(self.titles[id_list[0]][0])
@@ -272,7 +273,7 @@ class Chatbot:
             break
         drink = self.drink_recommendation(self.titles[suggestion])
         snack = self.snack_recommendation(self.titles[suggestion])
-        return "I suggest you watch \"{}\" based on your taste in films. For a bonus, based on your movie recommendation, I'd recommend you pair your viewing with {} and {}".format(self.titles[suggestions[0]][0], snack, drink)
+        return "{} \"{}\" based on your taste in films. For a bonus, based on your movie recommendation, I'd recommend you pair your viewing with {} and {}".format(random.choice(self.suggestion_lead), self.titles[suggestions[0]][0], snack, drink)
 
       if len(self.problems_list) > 0:
         if len(self.problems_list[-1][0]) > 1:
@@ -721,7 +722,8 @@ class Chatbot:
 
     def ambiguous_entry(self, id_list):
       response = "I found a few movies that fit that description. Did you mean "
-      for i in range(len(id_list)):
+      length = min(len(id_list), 5)
+      for i in range(length):
         response += "\"" + self.titles[id_list[i]][0] + "\""
         if i < len(id_list) - 1:
           response += ", "
@@ -905,7 +907,7 @@ class Chatbot:
         # choose one of the genres
         genre = random.choice(genres)
         # map genre to recommendation
-        snack = "hot, buttery popcorn."
+        snack = "hot, buttery popcorn"
         if genre in self.snacks.keys():
           snack = self.snacks[genre]
         # for {genre} movies, we'd recommend {response}
@@ -934,10 +936,9 @@ class Chatbot:
       can do and how the user can interact with it.
       """
       return """
-      Your task is to implement the chatbot as detailed in the PA6 instructions.
-      Remember: in the starter mode, movie names will come in quotation marks and
-      expressions of sentiment will be simple!
-      Write here the description for your own chatbot!
+      Hello! I am Lit, your helpful movie bot here to offer you a new movie experience! 
+      Are you tired of re-watching the same old movies? Well, your wait is over! Let's have 
+      conversation about your favorite movies, and I'll see what movies I think you will love!
       """
 
 
