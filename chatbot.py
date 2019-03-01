@@ -478,8 +478,8 @@ class Chatbot:
         movie_noalt = re.sub(' \(.*\)', '', movie)
         if title in [movie, movie_with_year, movie_noalt] and not self.creative:
           id_list.append(i)
-        if self.creative and title in movie and not found:
-          id_list.append(i)
+        # if self.creative and title in movie and not found:
+        #   id_list.append(i)
             
       id_list = list(set(id_list))
       return id_list
