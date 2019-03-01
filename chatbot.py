@@ -52,6 +52,48 @@ class Chatbot:
       ratings = self.binarize(ratings)
       # Binarize the movie ratings before storing the binarized matrix.
       self.ratings = ratings
+
+      self.drinks = {
+        "Comedy": "Riesling, for the levity and dry humor.",
+        "Romance": "Cabernet Sauvignon from Chateau Montelena, a California favorite.",
+        "Drama": "Rosé, duh!",
+        "Documentary": 'Craft Beer, to connect with the local.',
+        "Crime": "19 Crimes Cabernet Sauvignon, to fuel your investigation.",
+        "Children": "Juice Box, to taste the fun!",
+        "Sci-Fi": "Water, to stay grounded.",
+        "Action": "a case of your favorite IPA.",
+        "Adventure": "to get out there and whip up something in the kitchen yourself!",
+        "Fantasy": "Champagne, for the light and whimsical.",
+        "Horror": "Bloody Mary, to be in theme.",
+        "Thriller": "Bloody Mary, to dull the senses.",
+        "Mystery": "Merlot, to bring out distinguished depth and character.",
+        "Animation": "Soda, for a little pep in your step.",
+        "War": "Whiskey, because we know that's what they'd be drinking."
+      }
+
+      self.snacks = {
+        "Comedy": "popcorn",
+        "Romance": "chocolate covered strawberries",
+        "Drama": "prosciutto with melon",
+        "Documentary": "vegetables",
+        "Crime": "blue cheese on crackers",
+        "Children": "Sour Patch Kids",
+        "Sci-Fi": "sugar cookies",
+        "Action": "action food",
+        "Adventure": "trail mix",
+        "Fantasy": "Skittles",
+        "Horror": "a light meal",
+        "Thriller": "mini hamburgers",
+        "Mystery": "Junior Mints",
+        "Animation": "cookies decorated with frosting",
+        "War": "no food"
+      }
+
+      self.starters = ["Great!", "Okay,", "Interesting...", "This is great information to know."]
+      self.reactions = ["an awesome script", "such beautiful cinematography", "powerful emotional scenes", "such a striking visual display", "a beautiful score", "some of the worst extras I have ever seen", "really great costume design"]
+      self.positive_words = ["enjoyed", "loved", "quite liked", "want to see more movies like", "appreciated", "adored", "might enjoy a movie similar to", "liked"]
+      self.negative_words = ["disliked", "didn't enjoy", "were not a fan of", "didn't really vibe with", "don't want to watch another movie like", "would rather avoid anything similar to"]
+    
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
@@ -66,7 +108,7 @@ class Chatbot:
       # TODO: Write a short greeting message                                      #
       #############################################################################
 
-      greeting_message = "Well hello there! Let's talk about movies! Is there a movie you've enjoyed recently?"
+      greeting_message = "Well hello there! Let's talk about movies! Is there a movie you absolutely love and want to talk about?"
 
       #############################################################################
       #                             END OF YOUR CODE                              #
@@ -79,7 +121,7 @@ class Chatbot:
       # TODO: Write a short farewell message                                      #
       #############################################################################
 
-      goodbye_message = "Have an awesome day, and I hope you enjoy your film!"
+      goodbye_message = "Have a spectacular day!! If you have a movie screening later, don't forget your accompanying food and drink!"
 
       #############################################################################
       #                             END OF YOUR CODE                              #
@@ -181,11 +223,7 @@ class Chatbot:
 
         movies = []
         id_list = []
-        # emma
-        print("wrong")
-        # broken here
-        if titles == []:return "I'm sorry, I don't recognize that movie. Can you tell me about a different one?"
-        print("no titles")
+ 
         if titles == []:return "I'd love to talk about movies!"
         for i in titles:
 
@@ -217,7 +255,6 @@ class Chatbot:
 
     
     #handle complex problem responses in creative mode 
-
     def complex_response(self):
       result = "Let's talk about some movies you've enjoyed!"
       if len(self.user_ratings) >= 5 and len(self.problems_list) == 0:
@@ -225,13 +262,9 @@ class Chatbot:
         for movie in self.user_ratings:
           self.rating_vec[movie[0]] = movie[1]
         suggestions = self.recommend(self.rating_vec, self.ratings)
-        print(suggestions)
-        #print(str(self.titles[suggestions[0]]))
-        #drink = self.drink_recommendation(self.titles[suggestions[0]])
-        #drink = self.drink_recommendation(self.titles[suggestions[0]])
-        #snack = self.snack_recommendation(self.titles[suggestions[0]][0])
-        return "I suggest you watch \"{}\" based on your current preferences.".format(self.titles[suggestions[0]][0])
-        # return "I suggest you watch \"{}\" based on your current preferences. For a bonus, based on your movie recommendation, we'd recommend you pair your viewing with \"{}\" and \"{}\"".format(self.titles[suggestions[0]][0], snack, drink)
+        drink = self.drink_recommendation(self.titles[suggestions[0]])
+        snack = self.snack_recommendation(self.titles[suggestions[0]])
+        return "I suggest you watch \"{}\" based on your taste in films. For a bonus, based on your movie recommendation, we'd recommend you pair your viewing with {} and {}".format(self.titles[suggestions[0]][0], snack, drink)
 
       if len(self.problems_list) > 0:
         if len(self.problems_list[-1][0]) > 1:
@@ -239,14 +272,21 @@ class Chatbot:
           return self.ambiguous_entry(self.problems_list[-1][0])
         elif self.problems_list[-1][1] == 0:
           self.problem = 2
-          return "I'm not sure how you felt about \"{}\". Could you tell me a bit more about your feeling?".format(self.titles[self.problems_list[-1][0][0]][0])
+          return "I'm not sure how you felt about \"{}\". Could you tell me a bit more about your feelings watching it?".format(self.titles[self.problems_list[-1][0][0]][0])
 
       if len(self.confirmation_list) > 0:
-        if self.confirmation_list[-1][1] > 0:
-          result = "Great, I'm glad to hear you enjoyed \"{}\". What's another movie you've seen recently?".format(self.titles[self.confirmation_list[-1][0]][0])
-        else:
-          result = "Okay, so you didn't like \"{}\". What's another movie you've seen recently?".format(self.titles[self.confirmation_list[-1][0]][0])
-        self.confirmation_list.pop()
+        result = random.choice(self.starters) + " I see that you"
+        for i in range(len(self.confirmation_list)):
+          if self.confirmation_list[i][1] > 0:
+            result += " {} \"{}\"".format(random.choice(self.positive_words), self.titles[self.confirmation_list[i][0]][0])
+          else:
+            result += " {} \"{}\"".format(random.choice(self.negative_words), self.titles[self.confirmation_list[i][0]][0])
+          if i < len(self.confirmation_list) - 1:
+            result += ","
+          if i == len(self.confirmation_list) -2:
+            result += " and"
+        result += ". What are some other movies you've enjoyed recently?"
+        self.confirmation_list = []
       return result
   
     #deal with follow-up conversation in creative mode
@@ -362,6 +402,7 @@ class Chatbot:
       """
       [id_list, titles] = self.find_movies_helper(text)
 
+
       return titles
 
 
@@ -369,11 +410,16 @@ class Chatbot:
     def process_title(self, title):
       title = title.lower()
       word_list = title.split()
-      if (word_list[0] in ['and', 'the', 'a', 'an', 'le', 'la']):
+      if (word_list[0] in ['and', 'the', 'a', 'an', 'le', 'la']):  
+        year = ''
+        if re.match('\(\d{4}\)', word_list[-1]) is not None:
+          year = word_list[-1]
+          word_list.pop(-1)
         word_list[-1] = word_list[-1] + ','
         word_list.append(word_list[0])
         word_list.pop(0)
-
+        if year:
+          word_list.append(year)
       title = " ".join(word_list)
       return title
 
@@ -549,6 +595,7 @@ class Chatbot:
       :returns: a list of tuples, where the first item in the tuple is a movie title,
         and the second is the sentiment in the text toward that movie
       """
+
       pattern = '(.*"([^"]*)".*)(and|but|or|nor|yet)(.*"([^"]*)")'
       split = re.findall(pattern, text)[0]
 
@@ -570,6 +617,7 @@ class Chatbot:
           sentiment_two = sentiment_one
 
       sentiment = [(title_one, sentiment_one), (title_two, sentiment_two)]
+      print(sentiment)
       return(sentiment)
 
     def edit_distance(self, movie1, movie2, max_distance):
@@ -686,14 +734,21 @@ class Chatbot:
       :param candidates: a list of movie indices
       :returns: a list of indices corresponding to the movies identified by the clarification
       """
+
       fitting = []
       year = ""
       for movie in candidates:
+        alt_titles = []
         title = self.titles[movie][0].lower()
-        year = re.findall("\d{4}", title.split()[-1])[0]
-        if ((not clarification.isdigit()) and clarification in title) or (year in clarification):
+        #year = re.findall("\d{4}", title.split()[-1])[0]
+        alts = re.findall(' \(.[^\)\(]*\)', title) # find foreign titles in parenthesis
+        title = re.sub("\(.*\)",'', title)
+        for i in range(len(alts)):
+              alt_title = re.sub('[\(\)]','', alts[i])
+              alts[i] = self.process_title_reverse(re.sub('aka ', '', alt_title).lstrip())
+        if (clarification in title) or (clarification in alts) or (alts[-1] in clarification):
           fitting.append(movie)
-      if clarification.isdigit() and int(clarification) < len(candidates):
+      if clarification.isdigit() and int(clarification) <= len(candidates):
         fitting.append(candidates[int(clarification) - 1])
       return fitting
 
@@ -802,73 +857,39 @@ class Chatbot:
       #############################################################################
       #                             END OF YOUR CODE                              #
       #############################################################################
-      return top_recs
-
-    drinks = {
-    "Comedy": "Riesling, for the levity and dry humor.",
-    "Romance": "Cabernet Sauvignon from Chateau Montelena, a California favorite.",
-    "Drama": "Rosé, duh!",
-    "Documentary": "Craft Beer, to connect with the local.",
-    "Crime": "19 Crimes Cabernet Sauvignon",
-    "Children": "Juice Box, to taste the fun!",
-    "Sci-Fi": "Water, to stay grounded.",
-    "Action": "a case of your favorite IPA.",
-    "Adventure": "to get out there and whip up something in the kitchen yourself!",
-    "Fantasy": "Champagne, for the light and whimsical.",
-    "Horror": "Bloody Mary, to be in theme.",
-    "Thriller": "Bloody Mary, to dull the senses.",
-    "Mystery": "Merlot, to bring out distinguished depth and character.",
-    "Animation": "Soda, for a little pep in your step.",
-    "War": "Whiskey, because we know that's what the actors would be drinking."
-    }
+      return top_recs  
 
     def drink_recommendation(self, recommendation):
       # movie recommendation was passed in
       # this is just the movie name
       # find that movie name in movielens
-      if (movielens.titles(recommendation[1]) != null):
-        genres = movielens.titles(recommendation)[1]
+      # rec is self.titles[]
+      if (recommendation[1] != ""):
+        genres = recommendation[1]
         # get all genres
         genres = genres.split("|")
         # choose one of the genres
         genre = random.choice(genres)
         # map genre to recommendation
-        drink = drinks[genre]
+        drink = self.drinks[genre]
         # for {genre} movies, we'd recommend {response}
       return drink
-    
-    snacks = {
-    "Comedy": "Popcorn",
-    "Romance": "Dove Dark Chocolate",
-    "Drama": "drama food",
-    "Documentary": "doc food",
-    "Crime": "crime food",
-    "Children": "child food",
-    "Sci-Fi": "scifi food",
-    "Action": "action food",
-    "Adventure": "adv food",
-    "Fantasy": "fantasy food",
-    "Horror": "horror food",
-    "Thriller": "thriller food",
-    "Mystery": "mystery food",
-    "Animation": "anim food",
-    "War": "war food"
-    }
 
-    def snack_recommendation (self, recommendation):
+    def snack_recommendation(self, recommendation):
       # movie rec passed in - the full thing (the two part situation)
       # find movie in movielens
       # find genre
       # map genre to snack
       # find movie in movielens
-      if (movielens[recommendation][1] != null):
-        genres = movielens[recommendation][1]
+      if (recommendation[1] != ""):
+        genres = recommendation[1]
         # get all genres
         genres = genres.split("|")
         # choose one of the genres
         genre = random.choice(genres)
         # map genre to recommendation
-        snack = snacks[genre]
+        snack = self.snacks[genre]
+        # for {genre} movies, we'd recommend {response}
       return snack
 
 
