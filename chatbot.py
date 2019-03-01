@@ -350,7 +350,7 @@ class Chatbot:
               alt_title = re.sub('[\(\)]', '', alt_titles[i])
               alt_title = self.process_title_reverse(re.sub('aka ', '', alt_title).lstrip())
 
-              if alt_title in text.split() or set(alt_title.split()).issubset(text.split()):
+              if (alt_title in text.split() or set(alt_title.split()).issubset(text.split())) and alt_title.lower() != 'not':
                 titles.append(movie_stripped)
                 matched = True
                 #Original movies is a list of the official names of all movies theyre currently asking about
