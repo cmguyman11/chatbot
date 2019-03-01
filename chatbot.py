@@ -178,7 +178,7 @@ class Chatbot:
 
           #titles = [(["title_a", "title_b", "title_c"] , 1), (["title"], -1), etc.]
           #title = ([title list], sentiment)
-          for title in titles:   
+          for title in titles:
             id_list = []
             #i = string "title_a"
             for i in title[0]:
@@ -323,7 +323,8 @@ class Chatbot:
     def find_movies_helper(self, text):
       id_list = []
       titles = []
-      if self.creative:
+      titles = titles + re.findall('"([^"]*)"', text)
+      if self.creative and titles != []:
         # strip text of case and punctuation
         text = text.lower()
         text = re.sub(r'[,\'!?:]', '', text)
@@ -384,8 +385,6 @@ class Chatbot:
             titles.append(movie_stripped)
             id_list.append(j)
         
-
-      titles = titles + re.findall('"([^"]*)"', text)
       titles = list(set(titles))
       return [id_list, titles]
 
@@ -467,7 +466,7 @@ class Chatbot:
       if self.creative:
         [id_list, titles] = self.find_movies_helper(title)
         if len(id_list) == 0:
-          found = False
+          found = False       
 
       # NORMAL MODE
   
