@@ -430,7 +430,8 @@ class Chatbot:
       word_list = title.split()
       lastIndex = len(word_list) - 1
       if (word_list[lastIndex] in ['and', 'the', 'a', 'an', 'le', 'la']):
-        word_list[lastIndex] = re.sub("," , '', word_list[lastIndex])
+        for i in range(len(word_list)):
+          word_list[i] = re.sub("," , '', word_list[i])
         word_list = [word_list[lastIndex]] + word_list
         word_list.pop(lastIndex + 1)
 
@@ -663,21 +664,25 @@ class Chatbot:
       :returns: a list of movie indices with titles closest to the given title and within edit distance max_distance
       """
 
-      title = self.process_title(title)
-
       id_list = []
       movie_list = movielens.titles()
       editDistances = {}
       minEditDistance = math.inf
       for i in range(len(movie_list)):
-        movie = self.process_title(movie_list[i][0]).lower()
+        original_movie = movie_list[i][0].lower()
+        date = ''
+        dates = re.findall("\s\((\d{4})\)", original_movie)
+        if len(dates) > 0: date = dates[0]
+
+        movie_date_removed = re.sub("\s\((\d{4})\)", "", original_movie)
+
+        movie_date_removed = self.process_title_reverse(movie_date_removed)
+
+        movie = movie_date_removed + " (" + date + ")"
 
         editDistance = self.edit_distance(movie, title, max_distance)
 
-        movie = re.sub("\s\((\d{4})\)", "", movie) # remove date
-        movie = self.process_title_reverse(movie) # move "the" "an", etc to start
-
-        editDistance_YearRemoved = self.edit_distance(movie, title, max_distance)
+        editDistance_YearRemoved = self.edit_distance(movie_date_removed, title, max_distance)
 
         # update new minimum edit distance
         if editDistance < minEditDistance and editDistance != -1:
