@@ -282,11 +282,13 @@ class Chatbot:
         alt_title_dict = {}
 
         movie_list = movielens.titles()
-        for i in range(len(movie_list)):
+        for j in range(len(movie_list)):
+          movie = movie_list[j]
           movie_stripped = ""
           matched = False
           # strip movie of case and year
-          original_movie = movie_list[i][0].lower() # make lowercase
+          original_movie = movie_list[j][0].lower() # make lowercase
+          
           original_movie = self.process_title_reverse(original_movie)
 
           date = re.findall(' \(\d{4}\)', original_movie)
@@ -328,12 +330,11 @@ class Chatbot:
             titles.append(movie_with_date_no_parens)
             id_list.append(i)
             matched = True
-          
-          # # handles case of one movie
+
+          # # handles case of one movie 'toy story' "i like toy story"
           if re.search(r"\b" + re.escape(movie_stripped) + r"\b", text) and not matched:
             titles.append(movie_stripped)
-            id_list.append(i)
-
+            id_list.append(j)
 
       titles = titles + re.findall('"([^"]*)"', text)
       titles = list(set(titles))
@@ -409,10 +410,7 @@ class Chatbot:
       id_list = []
       found = True
       if self.creative:
-        print("title: " + title)
         [id_list, titles] = self.find_movies_helper(title)
-        print("titles: " + str(titles))
-        print("id_list before: " + str(id_list))
         if len(id_list) == 0:
           found = False
 
@@ -431,7 +429,6 @@ class Chatbot:
           id_list.append(i)
             
       id_list = list(set(id_list))
-      print("id_list after: " + str(id_list))
       return id_list
 
 
