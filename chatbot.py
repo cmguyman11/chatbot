@@ -678,6 +678,7 @@ class Chatbot:
       movie_list = movielens.titles()
       editDistances = {}
       minEditDistance = math.inf
+      title = title.lower()
       for i in range(len(movie_list)):
         original_movie = movie_list[i][0].lower()
         date = ''
